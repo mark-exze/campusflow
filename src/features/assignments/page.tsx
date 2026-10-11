@@ -44,9 +44,10 @@ const STATUS_FILTER_OPTIONS: readonly { value: StatusFilter; label: string }[] =
 export function AssignmentsPage() {
   const {
     subjects,
-    todayIso,
     assignments,
+    todayIso,
     getSubject,
+    stats,
     addAssignment,
     updateAssignment,
     toggleComplete,
@@ -99,6 +100,8 @@ export function AssignmentsPage() {
   const totalAssignments = overdue.length + active.length + completed.length
   const totalStored = assignments.length
   const hasNoAssignmentsAtAll = totalStored === 0
+  const sampleAssignmentCount = stats.sampleAssignments
+  const customisedAssignmentCount = stats.customisedAssignments
 
   const closeForm = () => {
     setShowForm(false)
@@ -430,6 +433,10 @@ export function AssignmentsPage() {
                 <Icon name="AlertCircle" className="size-4" />
                 Overdue ({overdue.length})
               </h2>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                Outstanding work past its due date. Completed assignments are
+                never counted here.
+              </p>
               <AssignmentList
                 assignments={overdue}
                 getSubject={getSubject}
@@ -479,6 +486,9 @@ export function AssignmentsPage() {
       <p className="text-xs text-slate-400 dark:text-slate-500">
         Showing {totalAssignments} of {totalStored} assignment{totalStored === 1 ? '' : 's'}
         {hasActiveFilters(filters) ? ' (filtered)' : ''}
+        {sampleAssignmentCount + customisedAssignmentCount > 0
+          ? ` · ${sampleAssignmentCount + customisedAssignmentCount} started as sample, ${totalStored - sampleAssignmentCount - customisedAssignmentCount} yours`
+          : ' · all added by you'}
       </p>
     </div>
   )

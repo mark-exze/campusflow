@@ -1,16 +1,24 @@
 import { act, renderHook } from '@testing-library/react'
 import { screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 
 import { renderAppAt } from './renderAppAt'
-import userEvent from '@testing-library/user-event'
+import { renderWithRouter } from './utils'
+import { CalendarPage } from '../features/calendar/page'
+import { DashboardPage } from '../features/dashboard/page'
+import { SubjectsPage } from '../features/subjects/page'
+import {
+  useAssignments,
+  type AddAssignmentResult,
+  type UpdateAssignmentResult,
+} from '../features/assignments/store'
+import { useProfile } from '../hooks/useProfile'
+import { StorageWriteError, useStorageError } from '../hooks/useLocalStorage'
+import { useSubjects } from '../features/subjects/store'
+import { buildCalendarEvents } from '../lib/calendarEvents'
 import { STORAGE_KEYS } from '../lib/constants'
 import { getTodayDateString } from '../lib/date'
 import { MOCK_SUBJECTS } from '../lib/mockData'
-import { useAssignments, type AddAssignmentResult, type UpdateAssignmentResult } from '../features/assignments/store'
-import { useProfile } from '../hooks/useProfile'
-import { useSubjects } from '../features/subjects/store'
-import { StorageWriteError, useStorageError } from '../hooks/useLocalStorage'
-import { buildCalendarEvents } from '../lib/calendarEvents'
 import type { Assignment, Subject } from '../types'
 
 function readStored<T>(key: string): T {
@@ -35,7 +43,7 @@ describe('malformed stored records', () => {
   it('renders the subjects page instead of crashing when subjects storage is null', () => {
     window.localStorage.setItem(STORAGE_KEYS.subjects, 'null')
 
-    expect(() => renderAppAt('/subjects')).not.toThrow()
+    expect(() => renderWithRouter(<SubjectsPage />)).not.toThrow()
     expect(screen.getByRole('heading', { level: 1, name: /^subjects$/i })).toBeInTheDocument()
   })
 
@@ -43,19 +51,19 @@ describe('malformed stored records', () => {
     // An object rather than an array: `.map` would throw on the parsed value.
     window.localStorage.setItem(STORAGE_KEYS.subjects, '{"a":1}')
 
-    expect(() => renderAppAt('/subjects')).not.toThrow()
+    expect(() => renderWithRouter(<SubjectsPage />)).not.toThrow()
   })
 
   it('renders instead of crashing when subjects storage is not valid JSON', () => {
     window.localStorage.setItem(STORAGE_KEYS.subjects, '{oops-not-json')
 
-    expect(() => renderAppAt('/subjects')).not.toThrow()
+    expect(() => renderWithRouter(<SubjectsPage />)).not.toThrow()
   })
 
   it('renders the dashboard instead of crashing when assignments storage is malformed', () => {
     for (const payload of ['null', '"a string"', '42', '{bad']) {
       window.localStorage.setItem(STORAGE_KEYS.assignments, payload)
-      const { unmount } = renderAppAt('/dashboard')
+      const { unmount } = renderWithRouter(<DashboardPage />)
       expect(
         screen.getByRole('heading', { level: 1 }),
       ).toBeInTheDocument()
@@ -69,7 +77,7 @@ describe('malformed stored records', () => {
       JSON.stringify([{ id: 'x' }, null, 'nonsense']),
     )
 
-    expect(() => renderAppAt('/calendar')).not.toThrow()
+    expect(() => renderWithRouter(<CalendarPage />)).not.toThrow()
   })
 
   it('leaves the unreadable bytes in place rather than overwriting them', () => {
@@ -719,6 +727,7 @@ describe('corrupt storage recovery', () => {
   it('warns the student rather than presenting sample data as recovered', () => {
     window.localStorage.setItem(STORAGE_KEYS.assignments, 'not-json-at-all')
 
+    // The notice is rendered by the layout, so the full shell is required.
     renderAppAt('/dashboard')
 
     const notice = screen.getByRole('status')

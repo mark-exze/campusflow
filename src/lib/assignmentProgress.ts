@@ -13,7 +13,6 @@
 import type { Assignment, AssignmentStatus } from '../types'
 
 export const MAX_PROGRESS = 100
-
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }
@@ -66,4 +65,16 @@ export function progressLabel(value: number): string {
   if (value >= 100) return 'Complete'
   if (value <= 0) return 'Not started'
   return `${value}%`
+}
+
+/**
+ * Coerce a stored record into a consistent assignment. Progress is re-derived
+ * from the status so legacy records without one still resolve correctly, and
+ * a completed record can never report less than 100%.
+ */
+export function normalizeAssignment(raw: Assignment): Assignment {
+  return {
+    ...raw,
+    progress: reconcileProgress(raw.status, raw.progress),
+  }
 }

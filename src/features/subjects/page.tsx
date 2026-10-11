@@ -17,6 +17,7 @@ import {
 } from '../../lib/subjects'
 import { useAssignments } from '../assignments/store'
 import { useProfile } from '../../hooks/useProfile'
+import { summarizeRecords } from '../../lib/seedData'
 import { useSubjects } from './store'
 import { SubjectCard } from './SubjectCard'
 import { SubjectForm } from './SubjectForm'
@@ -156,6 +157,7 @@ export function SubjectsPage() {
   }
 
   const credits = subjects.reduce((total, subject) => total + subject.credits, 0)
+  const recordSummary = useMemo(() => summarizeRecords(subjects, assignments), [subjects, assignments])
 
   return (
     <div className="space-y-6">
@@ -214,7 +216,7 @@ export function SubjectsPage() {
         <EmptyState
           icon="BookOpen"
           title="No subjects yet"
-          description="Add your first subject to start tracking classes and deadlines."
+          description="Subjects hold your classes, assignments and schedule. Add your first one to get started."
           action={
             <Button variant="primary" size="sm" onClick={() => setIsCreating(true)}>
               <Icon name="Plus" className="size-4" />
@@ -236,6 +238,23 @@ export function SubjectsPage() {
             </li>
           ))}
         </ul>
+      )}
+
+      {recordSummary.sampleSubjects + recordSummary.customisedSubjects > 0 ? (
+        <p className="text-[11px] text-slate-400 dark:text-slate-500">
+          {recordSummary.sampleSubjects + recordSummary.customisedSubjects} of {subjects.length}{' '}
+          subject{subjects.length === 1 ? '' : 's'} started as sample data —{' '}
+          {recordSummary.sampleSubjects} untouched
+          {recordSummary.customisedSubjects > 0
+            ? `, ${recordSummary.customisedSubjects} customised by you`
+            : ''}
+          {recordSummary.userSubjects > 0 ? `, ${recordSummary.userSubjects} added by you` : ''}
+          .
+        </p>
+      ) : (
+        <p className="text-[11px] text-slate-400 dark:text-slate-500">
+          Every subject here was added by you.
+        </p>
       )}
 
       <Card>

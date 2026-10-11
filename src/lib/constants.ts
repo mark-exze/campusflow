@@ -10,6 +10,7 @@ export const STORAGE_KEYS = {
   assignments: 'campusflow.assignments.v1',
   subjects: 'campusflow.subjects.v1',
   profile: 'campusflow.profile.v1',
+  onboarding: 'campusflow.onboarding.v1',
   theme: 'campusflow.theme.v1',
 } as const
 

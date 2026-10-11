@@ -95,6 +95,17 @@ export type GradeBand = {
   color: string
 }
 
+/**
+ * Local onboarding payload. Only visibility is stored here — step progress is
+ * derived from real records, so it can never contradict what the student did.
+ */
+export type OnboardingState = {
+  /** The student hid the getting-started guide. */
+  dismissed: boolean
+  /** The student has opened the calendar at least once. */
+  visitedCalendar: boolean
+}
+
 export type GradeRecord = {
   id: string
   subjectId: string

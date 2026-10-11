@@ -1,13 +1,21 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 
+import { GettingStarted } from '../../components/dashboard/GettingStarted'
 import { Badge } from '../../components/ui/Badge'
+import { Button } from '../../components/ui/Button'
 import { ButtonLink } from '../../components/ui/ButtonLink'
+import { Icon } from '../../components/ui/Icon'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { useAssignments } from '../assignments/store'
+import { useOnboarding } from '../../hooks/useOnboarding'
 import { useProfile } from '../../hooks/useProfile'
 import { ROUTES } from '../../lib/constants'
 import { formatDayHeader, getTodayDateString } from '../../lib/date'
+import { buildOnboardingSteps, shouldShowOnboarding } from '../../lib/onboarding'
+import type { OnboardingInput } from '../../lib/onboarding'
 import { displayNameOrFallback } from '../../lib/profile'
+import { getStudentSubjects, hasStudentAssignment } from '../../lib/seedData'
 import { DashboardStats } from './DashboardStats'
 import { QuickActions } from './QuickActions'
 import { SubjectOverview } from './SubjectOverview'
@@ -24,6 +32,7 @@ function getGreeting(): string {
 export function DashboardPage() {
   const {
     subjects,
+    assignments,
     todayClasses,
     upcomingAssignments,
     overdueAssignments,
@@ -32,6 +41,28 @@ export function DashboardPage() {
     toggleComplete,
   } = useAssignments()
   const { profile } = useProfile()
+  const onboarding = useOnboarding()
+
+  // Completion derives from records the student made their own, never from
+  // untouched sample data, so the two lists can never drift apart.
+  const onboardingInput = useMemo<OnboardingInput>(
+    () => ({
+      displayName: profile.displayName,
+      hasUserSubject: getStudentSubjects(subjects).length > 0,
+      hasUserAssignment: hasStudentAssignment(assignments),
+      visitedCalendar: onboarding.visitedCalendar,
+    }),
+    [profile.displayName, subjects, assignments, onboarding.visitedCalendar],
+  )
+
+  const onboardingComplete = useMemo(
+    () => buildOnboardingSteps(onboardingInput).every((step) => step.isComplete),
+    [onboardingInput],
+  )
+
+  const showOnboarding =
+    shouldShowOnboarding(buildOnboardingSteps(onboardingInput), onboarding.dismissed) &&
+    !onboardingComplete
 
   return (
     <div className="space-y-6">
@@ -47,6 +78,19 @@ export function DashboardPage() {
             <Badge tone="brand" icon="Sparkles">
               Local data
             </Badge>
+
+            {showOnboarding ? null : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onboarding.restore}
+                title="Show the getting started steps"
+              >
+                <Icon name="RotateCcw" className="size-4" />
+                Getting started
+              </Button>
+            )}
+
             <ButtonLink to={ROUTES.subjects} variant="secondary" size="sm">
               Your subjects
             </ButtonLink>
@@ -56,6 +100,10 @@ export function DashboardPage() {
           </>
         }
       />
+
+      {showOnboarding ? (
+        <GettingStarted input={onboardingInput} onDismiss={onboarding.dismiss} />
+      ) : null}
 
       <DashboardStats stats={stats} />
 

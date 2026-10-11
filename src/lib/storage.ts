@@ -6,7 +6,7 @@
  * store validates the parsed shape before using it.
  */
 
-import type { Assignment, StudentProfile, Subject } from '../types'
+import type { Assignment, OnboardingState, StudentProfile, Subject } from '../types'
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -21,5 +21,9 @@ export function isAssignmentArray(value: unknown): value is Assignment[] {
 }
 
 export function isProfileObject(value: unknown): value is StudentProfile {
+  return isPlainObject(value)
+}
+
+export function isOnboardingState(value: unknown): value is OnboardingState {
   return isPlainObject(value)
 }

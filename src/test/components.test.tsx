@@ -7,6 +7,8 @@ import { renderWithRouter } from './utils'
 import { DashboardPage } from '../features/dashboard/page'
 import { AssignmentForm } from '../features/assignments/AssignmentForm'
 import { validateAssignmentForm } from '../features/assignments/validation'
+import { SettingsPage } from '../features/settings/page'
+import { SubjectsPage } from '../features/subjects/page'
 import { MOCK_SUBJECTS } from '../lib/mockData'
 
 describe('DashboardPage', () => {
@@ -202,7 +204,7 @@ describe('AssignmentForm', () => {
 
 describe('SubjectsPage', () => {
   it('lists the sample subjects', () => {
-    renderAppAt('/subjects')
+    renderWithRouter(<SubjectsPage />)
 
     expect(screen.getByRole('heading', { level: 1, name: /^subjects$/i })).toBeInTheDocument()
     expect(screen.getByText('Calculus II')).toBeInTheDocument()
@@ -211,7 +213,7 @@ describe('SubjectsPage', () => {
 
   it('adds a subject through the dialog', async () => {
     const user = userEvent.setup()
-    renderAppAt('/subjects')
+    renderWithRouter(<SubjectsPage />)
 
     await user.click(screen.getByRole('button', { name: /^Add subject$/i }))
 
@@ -228,7 +230,7 @@ describe('SubjectsPage', () => {
 
   it('rejects a duplicate subject code', async () => {
     const user = userEvent.setup()
-    renderAppAt('/subjects')
+    renderWithRouter(<SubjectsPage />)
 
     await user.click(screen.getByRole('button', { name: /^Add subject$/i }))
     const dialog = await screen.findByRole('dialog')
@@ -243,7 +245,7 @@ describe('SubjectsPage', () => {
 
   it('requires a name before creating', async () => {
     const user = userEvent.setup()
-    renderAppAt('/subjects')
+    renderWithRouter(<SubjectsPage />)
 
     await user.click(screen.getByRole('button', { name: /^Add subject$/i }))
     const dialog = await screen.findByRole('dialog')
@@ -255,7 +257,7 @@ describe('SubjectsPage', () => {
 
   it('archives a subject and marks it visually', async () => {
     const user = userEvent.setup()
-    renderAppAt('/subjects')
+    renderWithRouter(<SubjectsPage />)
 
     await user.click(screen.getByRole('button', { name: /Archive Calculus II/i }))
 
@@ -272,7 +274,7 @@ describe('SubjectsPage', () => {
 
   it('counts completed and incomplete assignments separately in the delete dialog', async () => {
     const user = userEvent.setup()
-    renderAppAt('/subjects')
+    renderWithRouter(<SubjectsPage />)
 
     // Calculus II has 1 in-progress and 1 completed sample assignment.
     await user.click(screen.getByRole('button', { name: /Delete Calculus II/i }))
@@ -298,7 +300,7 @@ describe('SubjectsPage', () => {
 
   it('requires explicit confirmation before permanently deleting', async () => {
     const user = userEvent.setup()
-    renderAppAt('/subjects')
+    renderWithRouter(<SubjectsPage />)
 
     await user.click(screen.getByRole('button', { name: /Delete Calculus II/i }))
     const dialog = await screen.findByRole('dialog')
@@ -319,7 +321,7 @@ describe('SubjectsPage', () => {
 
   it('archives from the delete dialog without losing assignments', async () => {
     const user = userEvent.setup()
-    renderAppAt('/subjects')
+    renderWithRouter(<SubjectsPage />)
 
     await user.click(screen.getByRole('button', { name: /Delete Calculus II/i }))
     const dialog = await screen.findByRole('dialog')
@@ -349,7 +351,7 @@ describe('SubjectsPage', () => {
 
   it('deletes a subject that has no assignments', async () => {
     const user = userEvent.setup()
-    renderAppAt('/subjects')
+    renderWithRouter(<SubjectsPage />)
 
     // Physics with Lab only has one assignment in the sample data; use a
     // subject with none by creating it fresh.
@@ -373,7 +375,7 @@ describe('SubjectsPage', () => {
 
   it('deletes a subject and its assignments when explicitly confirmed', async () => {
     const user = userEvent.setup()
-    renderAppAt('/subjects')
+    renderWithRouter(<SubjectsPage />)
 
     const assignmentsBefore = JSON.parse(
       window.localStorage.getItem('campusflow.assignments.v1')!,
@@ -414,7 +416,7 @@ describe('SubjectsPage', () => {
 
   it('closes the delete dialog with Escape', async () => {
     const user = userEvent.setup()
-    renderAppAt('/subjects')
+    renderWithRouter(<SubjectsPage />)
 
     await user.click(screen.getByRole('button', { name: /Delete Calculus II/i }))
     const dialog = await screen.findByRole('dialog')
@@ -433,6 +435,7 @@ describe('SubjectsPage', () => {
 describe('SettingsPage profile', () => {
   it('saves the profile and shows it on the dashboard', async () => {
     const user = userEvent.setup()
+    // The full shell is needed: the test navigates to the dashboard by link.
     renderAppAt('/settings')
 
     await user.clear(screen.getByLabelText(/display name/i))
@@ -450,7 +453,7 @@ describe('SettingsPage profile', () => {
 
   it('rejects an invalid academic year with a visible error', async () => {
     const user = userEvent.setup()
-    renderAppAt('/settings')
+    renderWithRouter(<SettingsPage />)
 
     await user.clear(screen.getByLabelText(/academic year/i))
     await user.type(screen.getByLabelText(/academic year/i), 'twenty')

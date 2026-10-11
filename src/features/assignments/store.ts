@@ -13,7 +13,9 @@ import { reconcileProgress } from '../../lib/assignmentProgress'
 import { STORAGE_KEYS } from '../../lib/constants'
 import { daysUntil, getTodayDateString, timeToMinutes } from '../../lib/date'
 import { MOCK_ASSIGNMENTS, MOCK_SUBJECTS } from '../../lib/mockData'
+import { normalizeAssignment } from '../../lib/assignmentProgress'
 import { isAssignmentArray, isSubjectArray } from '../../lib/storage'
+import { summarizeRecords } from '../../lib/seedData'
 import { deriveClassSessions, normalizeSubject } from '../../lib/subjects'
 import type {
   Assignment,
@@ -86,16 +88,10 @@ export function sortAssignments(assignments: Assignment[]): Assignment[] {
 }
 
 /**
- * Coerce a stored record into a consistent assignment. Progress is re-derived
- * from the status so legacy records without one still resolve correctly, and
- * a completed record can never report less than 100%.
+ * Coerce a stored record into a consistent assignment. Re-exported from
+ * `lib/assignmentProgress` so existing callers keep working.
  */
-export function normalizeAssignment(raw: Assignment): Assignment {
-  return {
-    ...raw,
-    progress: reconcileProgress(raw.status, raw.progress),
-  }
-}
+export { normalizeAssignment }
 
 /**
  * Assignment state backed by localStorage.
@@ -228,6 +224,7 @@ export function useAssignments() {
   const stats = useMemo(() => {
     const openProgress = activeAssignments.map((assignment) => assignment.progress ?? 0)
     const totalOpenProgress = openProgress.reduce((total, value) => total + value, 0)
+    const summary = summarizeRecords(subjects, sortedAssignments)
 
     return {
       active: activeAssignments.length,
@@ -242,11 +239,22 @@ export function useAssignments() {
           0,
         ),
       ),
-      // Average completion across open work; 0 when nothing is open.
+      // Average completion across open work; null when nothing is open, so the
+      // dashboard shows a dash rather than a misleading 0%.
       averageProgress:
-        openProgress.length > 0 ? Math.round(totalOpenProgress / openProgress.length) : 0,
+        openProgress.length > 0 ? Math.round(totalOpenProgress / openProgress.length) : null,
+      // Subject counts, archived handled separately so they can never be
+      // double counted as active.
+      activeSubjects: summary.activeSubjects,
+      archivedSubjects: summary.archivedSubjects,
+      sampleSubjects: summary.sampleSubjects,
+      customisedSubjects: summary.customisedSubjects,
+      userSubjects: summary.userSubjects,
+      sampleAssignments: summary.sampleAssignments,
+      customisedAssignments: summary.customisedAssignments,
+      userAssignments: summary.userAssignments,
     }
-  }, [activeAssignments, completedAssignments.length, overdueAssignments.length, todayClasses])
+  }, [activeAssignments, completedAssignments.length, overdueAssignments.length, subjects, sortedAssignments, todayClasses])
 
   const addAssignment = useCallback(
     (input: NewAssignmentInput): AddAssignmentResult => {

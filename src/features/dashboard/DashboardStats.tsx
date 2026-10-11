@@ -10,11 +10,18 @@ export type DashboardStatsProps = {
     completed: number
     classCount: number
     classHours: number
-    averageProgress: number
+    averageProgress: number | null
+    activeSubjects: number
+    archivedSubjects: number
+    sampleSubjects: number
+    userSubjects: number
+    sampleAssignments: number
+    userAssignments: number
   }
 }
 
 const TILES = [
+  { key: 'subjects', icon: 'BookOpen', label: 'Active subjects' },
   { key: 'classes', icon: 'CalendarDays', label: 'Classes today' },
   { key: 'dueToday', icon: 'Clock', label: 'Due today' },
   { key: 'overdue', icon: 'AlertCircle', label: 'Overdue' },
@@ -22,7 +29,8 @@ const TILES = [
 ] as const
 
 export function DashboardStats({ stats }: DashboardStatsProps) {
-  const values = {
+  const values: Record<(typeof TILES)[number]['key'], string | number> = {
+    subjects: stats.activeSubjects,
     classes: `${stats.classCount} · ${stats.classHours}h`,
     dueToday: stats.dueToday,
     overdue: stats.overdue,
@@ -31,7 +39,7 @@ export function DashboardStats({ stats }: DashboardStatsProps) {
 
   return (
     <section aria-label="Day summary" className="space-y-3">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         {TILES.map((tile) => {
           const isOverdue = tile.key === 'overdue' && stats.overdue > 0
           const value = values[tile.key]
@@ -62,6 +70,13 @@ export function DashboardStats({ stats }: DashboardStatsProps) {
         })}
       </div>
 
+      {stats.archivedSubjects > 0 ? (
+        <p className="text-[11px] text-slate-400 dark:text-slate-500">
+          {stats.archivedSubjects} archived subject
+          {stats.archivedSubjects === 1 ? '' : 's'} kept out of the active count.
+        </p>
+      ) : null}
+
       {/* Open-work progress, so the summary reflects in-progress assignments
           rather than just counts. */}
       <Card padded={false} className="flex items-center gap-3 p-3 sm:p-4">
@@ -69,17 +84,19 @@ export function DashboardStats({ stats }: DashboardStatsProps) {
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs text-slate-500 dark:text-slate-400">Open work progress</p>
             <p className="text-xs font-semibold tabular-nums text-slate-900 dark:text-slate-100">
-              {stats.averageProgress}%
+              {stats.averageProgress === null ? '—' : `${stats.averageProgress}%`}
             </p>
           </div>
           <ProgressBar
-            value={stats.averageProgress}
+            value={stats.averageProgress ?? 0}
             size="md"
             label="Average progress across open assignments"
             className="mt-2"
           />
           <p className="mt-1.5 text-[11px] text-slate-400 dark:text-slate-500">
-            Average across {stats.active} open assignment{stats.active === 1 ? '' : 's'}
+            {stats.active === 0
+              ? 'No open assignments to average.'
+              : `Average across ${stats.active} open assignment${stats.active === 1 ? '' : 's'}`}
           </p>
         </div>
       </Card>

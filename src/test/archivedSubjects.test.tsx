@@ -3,6 +3,8 @@ import { screen, within, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { renderAppAt } from './renderAppAt'
+import { renderWithRouter } from './utils'
+import { SubjectsPage } from '../features/subjects/page'
 import { MOCK_ASSIGNMENTS, MOCK_SUBJECTS } from '../lib/mockData'
 import { STORAGE_KEYS } from '../lib/constants'
 import { countAssignmentsBySubject, deleteSubjectWithAssignments } from '../lib/subjects'
@@ -415,7 +417,7 @@ describe('completed assignments are counted for deletion', () => {
 
   it('shows the completed breakdown in the delete dialog', async () => {
     const user = userEvent.setup()
-    renderAppAt('/subjects')
+    renderWithRouter(<SubjectsPage />)
 
     await user.click(screen.getByRole('button', { name: /Delete Calculus II/i }))
     const dialog = await screen.findByRole('dialog')
@@ -457,7 +459,7 @@ describe('deletion requires confirmation', () => {
 
   it('deletes nothing when the confirmation dialog is cancelled', async () => {
     const user = userEvent.setup()
-    renderAppAt('/subjects')
+    renderWithRouter(<SubjectsPage />)
 
     const subjectsBefore = readStored<Subject[]>(STORAGE_KEYS.subjects)
     const assignmentsBefore = readStored<Assignment[]>(STORAGE_KEYS.assignments)
@@ -477,7 +479,7 @@ describe('deletion requires confirmation', () => {
 
   it('deletes nothing while the confirmation checkbox is unticked', async () => {
     const user = userEvent.setup()
-    renderAppAt('/subjects')
+    renderWithRouter(<SubjectsPage />)
 
     const subjectsBefore = readStored<Subject[]>(STORAGE_KEYS.subjects)
 

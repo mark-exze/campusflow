@@ -2,7 +2,9 @@ import { act, renderHook } from '@testing-library/react'
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
+import { renderWithRouter } from './utils'
 import { renderAppAt } from './renderAppAt'
+import { CalendarPage } from '../features/calendar/page'
 import {
   DEFAULT_WEEK_START,
   buildWeekDates,
@@ -55,7 +57,7 @@ function addAssignmentInStore(overrides: Partial<Assignment> = {}): void {
 
 describe('calendar page views', () => {
   it('renders the month grid with weekday headers', () => {
-    renderAppAt('/calendar')
+    renderWithRouter(<CalendarPage />)
 
     expect(screen.getByRole('heading', { level: 1, name: /calendar/i })).toBeInTheDocument()
     for (const day of ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']) {
@@ -64,7 +66,7 @@ describe('calendar page views', () => {
   })
 
   it('shows assignment deadlines from the sample data', () => {
-    renderAppAt('/calendar')
+    renderWithRouter(<CalendarPage />)
 
     // Sample deadlines fall in the current month or a nearby one; navigate to
     // it if needed so the assertion does not depend on today's date.
@@ -74,7 +76,7 @@ describe('calendar page views', () => {
 
   it('switches between month and week views', async () => {
     const user = userEvent.setup()
-    renderAppAt('/calendar')
+    renderWithRouter(<CalendarPage />)
 
     const monthButton = screen.getByRole('radio', { name: 'month' })
     const weekButton = screen.getByRole('radio', { name: 'week' })
@@ -94,7 +96,7 @@ describe('calendar page views', () => {
 
   it('navigates months and returns with Today', async () => {
     const user = userEvent.setup()
-    renderAppAt('/calendar')
+    renderWithRouter(<CalendarPage />)
 
     const heading = () => screen.getByRole('heading', { level: 2 }).textContent ?? ''
     const start = heading()
@@ -111,7 +113,7 @@ describe('calendar page views', () => {
 
   it('navigates weeks', async () => {
     const user = userEvent.setup()
-    renderAppAt('/calendar')
+    renderWithRouter(<CalendarPage />)
 
     await user.click(screen.getByRole('radio', { name: 'week' }))
     const heading = screen.getByRole('heading', { level: 2 }).textContent ?? ''
@@ -122,6 +124,8 @@ describe('calendar page views', () => {
 
   it('does not overflow horizontally in week view', async () => {
     const user = userEvent.setup()
+    // The full shell is needed here: the assertion measures the page container,
+    // which only the layout provides.
     renderAppAt('/calendar')
     await user.click(screen.getByRole('radio', { name: 'week' }))
 
@@ -138,7 +142,7 @@ describe('calendar page views', () => {
 describe('calendar event details', () => {
   it('lists the events for a selected day', async () => {
     const user = userEvent.setup()
-    renderAppAt('/calendar')
+    renderWithRouter(<CalendarPage />)
 
     await user.click(screen.getAllByRole('button', { name: /View events for/i })[0]!)
 
@@ -151,7 +155,7 @@ describe('calendar event details', () => {
 
     // Put a deadline on today so it is always visible in the current month.
     addAssignmentInStore({ title: 'Rendered deadline', dueDate: getTodayDateString() })
-    renderAppAt('/calendar')
+    renderWithRouter(<CalendarPage />)
 
     await user.click(screen.getAllByRole('button', { name: /assignment due/i })[0]!)
     const dialog = await screen.findByRole('dialog')
@@ -165,7 +169,7 @@ describe('calendar event details', () => {
 
   it('shows class details with time, location and instructor', async () => {
     const user = userEvent.setup()
-    renderAppAt('/calendar')
+    renderWithRouter(<CalendarPage />)
 
     await user.click(screen.getAllByRole('button', { name: /class .* on /i })[0]!)
     const dialog = await screen.findByRole('dialog')
@@ -178,7 +182,7 @@ describe('calendar event details', () => {
 
   it('closes the event dialog with Escape', async () => {
     const user = userEvent.setup()
-    renderAppAt('/calendar')
+    renderWithRouter(<CalendarPage />)
 
     await user.click(screen.getAllByRole('button', { name: /class .* on /i })[0]!)
     await screen.findByRole('dialog')
@@ -205,7 +209,7 @@ describe('calendar count badges', () => {
       dueDate: shiftMonth(`${monthAnchor.slice(0, 7)}-01`, 1),
     })
 
-    renderAppAt('/calendar')
+    renderWithRouter(<CalendarPage />)
     await user.click(screen.getByRole('button', { name: 'Today' }))
 
     // The badge names the month it is counting.
@@ -223,7 +227,7 @@ describe('calendar count badges', () => {
     // One just outside the window.
     addAssignmentInStore({ title: 'Beyond the week', dueDate: addDays(dates[6]!, 1) })
 
-    renderAppAt('/calendar')
+    renderWithRouter(<CalendarPage />)
     await user.click(screen.getByRole('radio', { name: 'week' }))
 
     expect(screen.getByText(/events? this week/i)).toBeInTheDocument()
@@ -245,7 +249,7 @@ describe('calendar day and event interaction', () => {
       addAssignmentInStore({ title: `Bulk deadline ${index}`, dueDate: today })
     }
 
-    renderAppAt('/calendar')
+    renderWithRouter(<CalendarPage />)
     await user.click(screen.getByRole('button', { name: `View events for ${today}` }))
 
     const dialog = await screen.findByRole('dialog')
@@ -260,7 +264,7 @@ describe('calendar day and event interaction', () => {
 
   it('opens assignment details for a deadline and class details for a class', async () => {
     const user = userEvent.setup()
-    renderAppAt('/calendar')
+    renderWithRouter(<CalendarPage />)
 
     await user.click(screen.getByRole('button', { name: /Problem Set 5.*assignment due/i }))
     let dialog = await screen.findByRole('dialog')
@@ -280,7 +284,7 @@ describe('calendar day and event interaction', () => {
 
   it('keeps the selected period when switching between month and week', async () => {
     const user = userEvent.setup()
-    renderAppAt('/calendar')
+    renderWithRouter(<CalendarPage />)
 
     // Step forward one month; the anchor moves to the first of that month.
     await user.click(screen.getByRole('button', { name: /next period/i }))
@@ -297,7 +301,7 @@ describe('calendar day and event interaction', () => {
   it('restores focus to the day button when the dialog closes', async () => {
     const user = userEvent.setup()
     const today = getTodayDateString()
-    renderAppAt('/calendar')
+    renderWithRouter(<CalendarPage />)
 
     const dayButton = screen.getByRole('button', { name: `View events for ${today}` })
     dayButton.focus()
@@ -318,7 +322,7 @@ describe('calendar day and event interaction', () => {
   it('offers keyboard-accessible day selection', async () => {
     const user = userEvent.setup()
     const today = getTodayDateString()
-    renderAppAt('/calendar')
+    renderWithRouter(<CalendarPage />)
 
     const dayButton = screen.getByRole('button', { name: `View events for ${today}` })
     dayButton.focus()
@@ -331,7 +335,7 @@ describe('calendar day and event interaction', () => {
   })
 
   it('gives every event a meaningful accessible label', () => {
-    renderAppAt('/calendar')
+    renderWithRouter(<CalendarPage />)
 
     const eventButtons = screen.getAllByRole('button', { name: /assignment due|class .* on /i })
     expect(eventButtons.length).toBeGreaterThan(0)
@@ -351,7 +355,7 @@ describe('calendar respects archived subjects', () => {
   it('drops archived-subject classes but keeps their deadlines visible', async () => {
     const user = userEvent.setup()
     setArchivedInStore('sub-calc', true)
-    renderAppAt('/calendar')
+    renderWithRouter(<CalendarPage />)
 
     // The archived subject still has a deadline on the calendar.
     const deadlineButton = screen.getByRole('button', {
@@ -391,7 +395,7 @@ describe('calendar respects archived subjects', () => {
   it('reflects a newly created deadline', async () => {
     addAssignmentInStore({ title: 'Created for calendar', dueDate: getTodayDateString() })
     const user = userEvent.setup()
-    renderAppAt('/calendar')
+    renderWithRouter(<CalendarPage />)
 
     const today = getTodayDateString()
     await user.click(screen.getByRole('button', { name: `View events for ${today}` }))
@@ -401,7 +405,7 @@ describe('calendar respects archived subjects', () => {
   })
 
   it('keeps completed assignments on the calendar', () => {
-    renderAppAt('/calendar')
+    renderWithRouter(<CalendarPage />)
 
     const stored = readStored<Assignment[]>(STORAGE_KEYS.assignments)
     expect(stored.some((assignment) => assignment.status === 'completed')).toBe(true)

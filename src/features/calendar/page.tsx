@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useEffect } from 'react'
 import type { ReactNode } from 'react'
 
 import { Badge } from '../../components/ui/Badge'
@@ -36,6 +37,7 @@ import {
 } from '../../lib/calendarEvents'
 import { useProfile } from '../../hooks/useProfile'
 import { useAssignments } from '../assignments/store'
+import { useOnboarding } from '../../hooks/useOnboarding'
 import { priorityLabel, statusLabel } from '../assignments/display'
 import type { DateFormatPreference } from '../../types'
 
@@ -47,12 +49,18 @@ const MONTH_EVENT_LIMIT = 2
 export function CalendarPage() {
   const { assignments, subjects } = useAssignments()
   const { profile } = useProfile()
+  const { markCalendarVisited } = useOnboarding()
 
   const todayIso = getTodayDateString()
   const [anchor, setAnchor] = useState(todayIso)
   const [view, setView] = useState<CalendarView>('month')
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
+
+  // Opening the calendar completes that onboarding step, once.
+  useEffect(() => {
+    markCalendarVisited()
+  }, [markCalendarVisited])
 
   const monthCells = useMemo(
     () => buildMonthGrid(anchor, { todayIso }),

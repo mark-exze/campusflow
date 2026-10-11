@@ -2,7 +2,8 @@ import { act, renderHook } from '@testing-library/react'
 import { screen, within, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-import { renderAppAt } from './renderAppAt'
+import { renderWithRouter } from './utils'
+import { AssignmentsPage } from '../features/assignments/page'
 import { STORAGE_KEYS } from '../lib/constants'
 import { MOCK_ASSIGNMENTS } from '../lib/mockData'
 import { getAssignmentProgress } from '../lib/assignmentProgress'
@@ -329,7 +330,7 @@ describe('deadline handling', () => {
 describe('assignments page', () => {
   it('filters the list by a search term', async () => {
     const user = userEvent.setup()
-    renderAppAt('/assignments')
+    renderWithRouter(<AssignmentsPage />)
 
     const search = screen.getByRole('searchbox', { name: /search assignments/i })
     await user.type(search, 'modernist')
@@ -339,7 +340,7 @@ describe('assignments page', () => {
 
   it('shows a no-matches empty state, distinct from having no assignments', async () => {
     const user = userEvent.setup()
-    renderAppAt('/assignments')
+    renderWithRouter(<AssignmentsPage />)
 
     await user.type(
       screen.getByRole('searchbox', { name: /search assignments/i }),
@@ -352,7 +353,7 @@ describe('assignments page', () => {
 
   it('clears every filter at once', async () => {
     const user = userEvent.setup()
-    renderAppAt('/assignments')
+    renderWithRouter(<AssignmentsPage />)
 
     await user.type(screen.getByRole('searchbox', { name: /search assignments/i }), 'zzzz')
     await screen.findByText('No matching assignments')
@@ -365,7 +366,7 @@ describe('assignments page', () => {
 
   it('combines a subject filter with a status filter', async () => {
     const user = userEvent.setup()
-    renderAppAt('/assignments')
+    renderWithRouter(<AssignmentsPage />)
 
     await user.selectOptions(screen.getByLabelText(/^subject$/i), 'sub-calc')
     await user.selectOptions(screen.getByLabelText(/^status$/i), 'completed')
@@ -377,7 +378,7 @@ describe('assignments page', () => {
 
   it('offers archived subjects in the subject filter', async () => {
     setArchivedInStore('sub-calc', true)
-    renderAppAt('/assignments')
+    renderWithRouter(<AssignmentsPage />)
 
     // The filter drop-down keeps archived subjects so historical assignments
     // stay reachable; only the Add form hides them.
@@ -387,7 +388,7 @@ describe('assignments page', () => {
 
   it('re-sorts the list by newest created', async () => {
     const user = userEvent.setup()
-    renderAppAt('/assignments')
+    renderWithRouter(<AssignmentsPage />)
 
     await user.selectOptions(screen.getByLabelText(/sort by/i), 'created-desc')
 
@@ -398,7 +399,7 @@ describe('assignments page', () => {
 
   it('edits status and progress through the form', async () => {
     const user = userEvent.setup()
-    renderAppAt('/assignments')
+    renderWithRouter(<AssignmentsPage />)
 
     await user.click(screen.getAllByRole('button', { name: /^Edit /i })[0]!)
     const form = await screen.findByRole('form', { name: /edit assignment/i })
@@ -420,7 +421,7 @@ describe('assignments page', () => {
 
   it('keeps progress below 100 when reopening a completed assignment', async () => {
     const user = userEvent.setup()
-    renderAppAt('/assignments')
+    renderWithRouter(<AssignmentsPage />)
 
     // Find a completed assignment's edit button.
     const completedHeading = screen.getByRole('heading', { name: /^Completed \(/i })
