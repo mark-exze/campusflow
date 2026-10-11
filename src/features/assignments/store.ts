@@ -193,17 +193,6 @@ export function useAssignments() {
     return sortClassesByTime(classSessions.filter((session) => session.dayOfWeek === today))
   }, [classSessions])
 
-  const weekSchedule = useMemo(
-    () =>
-      Array.from({ length: 7 }, (_, dayOfWeek) => ({
-        dayOfWeek,
-        classes: sortClassesByTime(
-          classSessions.filter((session) => session.dayOfWeek === dayOfWeek),
-        ),
-      })),
-    [classSessions],
-  )
-
   const stats = useMemo(() => {
     const openProgress = activeAssignments.map((assignment) => assignment.progress ?? 0)
     const totalOpenProgress = openProgress.reduce((total, value) => total + value, 0)
@@ -382,7 +371,6 @@ export function useAssignments() {
     overdueAssignments,
     completedAssignments,
     todayClasses,
-    weekSchedule,
     stats,
     getSubject,
     getAssignmentStatus,

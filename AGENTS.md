@@ -70,8 +70,9 @@ own key in `STORAGE_KEYS`:
   incomplete object.
 
 Derived selectors (`activeAssignments`, `overdueAssignments`,
-`upcomingAssignments`, `completedAssignments`, `todayClasses`, `weekSchedule`,
-`stats`) are computed inside the store, not in components.
+`upcomingAssignments`, `completedAssignments`, `todayClasses`,
+`classSessions`, `stats`) are computed inside the store, not in components.
+Calendar grids and events are derived separately in `lib/calendarEvents.ts`.
 
 ### Referential integrity
 

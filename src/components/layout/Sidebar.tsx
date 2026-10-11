@@ -37,7 +37,7 @@ export function Sidebar() {
           <ThemeToggle />
         </div>
         <p className="mt-3 px-1 text-[11px] leading-relaxed text-slate-400 dark:text-slate-500">
-          Phase 1 build — sample data only. No account, AI or cloud sync.
+          Local-first preview · Data saved on this device. No cloud sync yet.
         </p>
       </div>
     </aside>

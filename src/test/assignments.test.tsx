@@ -1,6 +1,7 @@
 import { renderHook, act } from '@testing-library/react'
 
 import { sortAssignments, useAssignments } from '../features/assignments/store'
+import { useSubjects } from '../features/subjects/store'
 import { STORAGE_KEYS } from '../lib/constants'
 import type { Assignment } from '../types'
 
@@ -214,14 +215,38 @@ describe('useAssignments store', () => {
     }
   })
 
-  it('builds a seven-day week schedule', () => {
-    const { result } = setup()
+  it('derives class sessions only from non-archived subjects', () => {
+    const { result, unmount } = renderHook(() => ({
+      subjects: useSubjects(),
+      assignments: useAssignments(),
+    }))
 
-    expect(result.current.weekSchedule).toHaveLength(7)
-    const total = result.current.weekSchedule.reduce(
-      (sum, day) => sum + day.classes.length,
-      0,
+    const sessions = result.current.assignments.classSessions
+    expect(sessions.length).toBeGreaterThan(0)
+
+    const archivedIds = new Set(
+      result.current.assignments.subjects
+        .filter((subject) => subject.archived)
+        .map((subject) => subject.id),
     )
-    expect(total).toBe(result.current.classSessions.length)
+    for (const session of sessions) {
+      expect(archivedIds.has(session.subjectId)).toBe(false)
+      expect(result.current.assignments.getSubject(session.subjectId)).toBeDefined()
+    }
+
+    const target = result.current.assignments.subjects.find(
+      (subject) => subject.schedule.length > 0,
+    )
+    expect(target).toBeDefined()
+    const before = sessions.length
+
+    act(() => {
+      result.current.subjects.setArchived(target!.id, true)
+    })
+    unmount()
+
+    // A remount re-reads the archived subject list.
+    const { result: after } = renderHook(() => useAssignments())
+    expect(after.current.classSessions).toHaveLength(before - target!.schedule.length)
   })
 })
