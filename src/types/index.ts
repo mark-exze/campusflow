@@ -68,6 +68,12 @@ export type Assignment = {
   dueDate: string // ISO date (yyyy-mm-dd)
   estimatedHours: number
   description: string
+  /**
+   * Completion percentage, 0-100. Optional so records written by earlier
+   * builds still load; the effective value is always derived from the status
+   * via `getAssignmentProgress`.
+   */
+  progress?: number | undefined
   createdAt: string // ISO datetime
   updatedAt: string // ISO datetime
 }

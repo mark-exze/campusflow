@@ -53,11 +53,23 @@ export function formatDayHeader(isoDate: string, dateFormat: DateFormatPreferenc
 }
 
 export function daysUntil(isoDate: string): number {
+  return daysUntilFrom(isoDate, getTodayDateString())
+}
+
+/**
+ * `daysUntil` against an explicit reference date, so deadline maths can be
+ * tested deterministically. Both dates are read as local midnight.
+ */
+export function daysUntilFrom(isoDate: string, todayIso: string): number {
   const target = parseIsoDate(isoDate)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const today = parseIsoDate(todayIso)
   const diffMs = target.getTime() - today.getTime()
   return Math.round(diffMs / (1000 * 60 * 60 * 24))
+}
+
+/** True when the date falls inside the current local calendar month. */
+export function isInCurrentMonth(isoDate: string, todayIso: string = getTodayDateString()): boolean {
+  return isoDate.slice(0, 7) === todayIso.slice(0, 7)
 }
 
 export function isOverdue(isoDate: string): boolean {

@@ -97,9 +97,11 @@ describe('validateAssignmentForm', () => {
     subjectId: subjectOptions[0]!.id,
     type: 'homework' as const,
     priority: 'medium' as const,
+    status: 'pending' as const,
     dueDate: '2026-12-01',
     estimatedHours: '2',
     description: '',
+    progress: '0',
   }
 
   it('accepts valid input', () => {

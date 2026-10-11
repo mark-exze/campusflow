@@ -1,6 +1,11 @@
 import type { AssignmentFormValues } from './AssignmentForm'
+import { validateProgress } from '../../lib/assignmentProgress'
+import { STATUS_OPTIONS } from '../../lib/constants'
+import type { AssignmentStatus } from '../../types'
 
-export type AssignmentFormErrors = Partial<Record<keyof AssignmentFormValues, string>>
+export type AssignmentFormErrors = Partial<
+  Record<keyof AssignmentFormValues, string | undefined>
+>
 
 /**
  * Minimal subject shape the validator needs. `Subject` satisfies this, so
@@ -55,6 +60,17 @@ export function validateAssignmentForm(
     errors.estimatedHours = 'Enter between 1 and 200 hours.'
   }
 
+  // Progress and status have to agree: completed means 100%, open work is
+  // capped below it.
+  if (!STATUS_OPTIONS.some((option) => option.value === values.status)) {
+    errors.status = 'Choose a status.'
+  } else {
+    const progressError = validateProgress(values.status, Number(values.progress))
+    if (progressError) {
+      errors.progress = progressError
+    }
+  }
+
   return errors
 }
 
@@ -102,17 +118,21 @@ export function toAssignmentFormValues(assignment: {
   subjectId: string
   type: AssignmentFormValues['type']
   priority: AssignmentFormValues['priority']
+  status: AssignmentStatus
   dueDate: string
   estimatedHours: number
   description: string
+  progress?: number | undefined
 }): AssignmentFormValues {
   return {
     title: assignment.title,
     subjectId: assignment.subjectId,
     type: assignment.type,
     priority: assignment.priority,
+    status: assignment.status,
     dueDate: assignment.dueDate,
     estimatedHours: String(assignment.estimatedHours),
     description: assignment.description,
+    progress: String(assignment.progress ?? 0),
   }
 }

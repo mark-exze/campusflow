@@ -1,8 +1,10 @@
 import { cn, formatEstimatedHours } from '../../lib/utils'
 import { daysUntil, getRelativeDayLabel } from '../../lib/date'
+import { getAssignmentProgress, progressLabel } from '../../lib/assignmentProgress'
 import { Icon } from '../../components/ui/Icon'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
+import { ProgressBar } from '../../components/ui/ProgressBar'
 import { SubjectChip } from '../../components/ui/SubjectChip'
 import type { Assignment, Subject } from '../../types'
 import { priorityLabel, statusLabel, statusTone, typeLabel } from './display'
@@ -24,6 +26,7 @@ export function AssignmentCard({
 }: AssignmentCardProps) {
   const isCompleted = assignment.status === 'completed'
   const isOverdue = !isCompleted && daysUntil(assignment.dueDate) < 0
+  const progress = getAssignmentProgress(assignment)
 
   return (
     <article
@@ -86,6 +89,20 @@ export function AssignmentCard({
           <Badge tone={statusTone(assignment.status)}>{statusLabel(assignment.status)}</Badge>
           <span className="sr-only">{`${typeLabel(assignment.type)}, ${priorityLabel(assignment.priority)}`}</span>
         </div>
+
+        {isCompleted ? null : (
+          <div className="flex items-center gap-2 pt-0.5">
+            <ProgressBar
+              value={progress}
+              size="sm"
+              label={`Progress for ${assignment.title}`}
+              className="max-w-40"
+            />
+            <span className="shrink-0 text-[11px] font-medium tabular-nums text-slate-500 dark:text-slate-400">
+              {progressLabel(progress)}
+            </span>
+          </div>
+        )}
       </div>
 
       {onEdit ? (

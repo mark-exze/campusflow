@@ -6,8 +6,8 @@ import { Icon } from '../../components/ui/Icon'
 import { Button } from '../../components/ui/Button'
 import { cn } from '../../lib/utils'
 import { addDays, getTodayDateString } from '../../lib/date'
-import { ASSIGNMENT_TYPES, PRIORITY_OPTIONS } from '../../lib/constants'
-import type { AssignmentPriority, AssignmentType, Subject } from '../../types'
+import { ASSIGNMENT_TYPES, PRIORITY_OPTIONS, STATUS_OPTIONS } from '../../lib/constants'
+import type { AssignmentPriority, AssignmentStatus, AssignmentType, Subject } from '../../types'
 import {
   defaultSubjectId,
   editableSubjectOptions,
@@ -20,9 +20,11 @@ export type AssignmentFormValues = {
   subjectId: string
   type: AssignmentType
   priority: AssignmentPriority
+  status: AssignmentStatus
   dueDate: string
   estimatedHours: string
   description: string
+  progress: string
 }
 
 export type AssignmentFormProps = {
@@ -48,9 +50,11 @@ const EMPTY_VALUES: AssignmentFormValues = {
   subjectId: '',
   type: 'homework',
   priority: 'medium',
+  status: 'pending',
   dueDate: addDays(getTodayDateString(), 3),
   estimatedHours: '1',
   description: '',
+  progress: '0',
 }
 
 export function AssignmentForm({
@@ -73,6 +77,7 @@ export function AssignmentForm({
   const currentSubject = subjectOptions.find((subject) => subject.id === values.subjectId)
   const keepsArchivedSubject = currentSubject?.archived === true
   const hasNoSelectableSubject = subjectOptions.length === 0
+  const isCompleted = values.status === 'completed'
 
   const update = <K extends keyof AssignmentFormValues>(
     key: K,
@@ -80,6 +85,20 @@ export function AssignmentForm({
   ) => {
     setValues((current) => ({ ...current, [key]: value }))
     setErrors((current) => ({ ...current, [key]: undefined }))
+  }
+
+  /**
+   * Keep progress consistent with status: completing pins progress to 100,
+   * reopening it caps the value below 100 so a record can never look finished
+   * while still open.
+   */
+  const changeStatus = (status: AssignmentStatus) => {
+    setValues((current) => ({
+      ...current,
+      status,
+      progress: status === 'completed' ? '100' : capOpenProgress(current.progress),
+    }))
+    setErrors((current) => ({ ...current, status: undefined, progress: undefined }))
   }
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -94,6 +113,7 @@ export function AssignmentForm({
       ...values,
       title: values.title.trim(),
       description: values.description.trim(),
+      progress: capOpenProgress(values.progress),
     })
 
     if (!isEditing) {
@@ -164,6 +184,65 @@ export function AssignmentForm({
               </option>
             ))}
           </Select>
+        </Field>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field
+          id={`${formId}-status`}
+          label="Status"
+          error={errors.status}
+          hint="Completing an assignment sets progress to 100%."
+        >
+          <Select
+            id={`${formId}-status`}
+            name="status"
+            value={values.status}
+            onChange={(event) => changeStatus(event.target.value as AssignmentStatus)}
+          >
+            {STATUS_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+        </Field>
+
+        <Field
+          id={`${formId}-progress`}
+          label="Progress"
+          error={errors.progress}
+          hint={isCompleted ? 'Completed assignments are always 100%.' : undefined}
+        >
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={isCompleted ? 100 : capOpenProgress(values.progress)}
+              disabled={isCompleted}
+              onChange={(event) => update('progress', event.target.value)}
+              aria-label="Progress percentage"
+              className="h-2 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-slate-200 accent-brand-600 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-700"
+            />
+            <Input
+              id={`${formId}-progress`}
+              name="progress"
+              type="number"
+              min={0}
+              max={isCompleted ? 100 : 99}
+              step={1}
+              value={isCompleted ? 100 : capOpenProgress(values.progress)}
+              disabled={isCompleted}
+              onChange={(event) => update('progress', event.target.value)}
+              invalid={Boolean(errors.progress)}
+              className="w-20 shrink-0 text-center tabular-nums"
+            />
+            <span className="w-10 shrink-0 text-sm font-medium tabular-nums text-slate-600 dark:text-slate-300">
+              {isCompleted ? 100 : capOpenProgress(values.progress)}%
+            </span>
+          </div>
         </Field>
       </div>
 
@@ -247,4 +326,15 @@ export function AssignmentForm({
       </div>
     </form>
   )
+}
+
+/**
+ * Coerce a raw progress string into a value valid for an open assignment:
+ * whole, non-negative, and never 100 (that is reserved for completed work).
+ */
+function capOpenProgress(value: string): string {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed <= 0) return '0'
+  if (parsed > 99) return '99'
+  return String(Math.round(parsed))
 }

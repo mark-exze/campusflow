@@ -24,9 +24,23 @@ const FORM_VALUES: AssignmentFormValues = {
   subjectId: '',
   type: 'homework',
   priority: 'medium',
+  status: 'pending',
   dueDate: '2026-12-01',
   estimatedHours: '2',
   description: '',
+  progress: '0',
+}
+
+/** The same task expressed as a store input, since the store takes numbers. */
+const NEW_TASK = {
+  title: 'New task',
+  subjectId: 'sub-ds',
+  type: 'homework' as const,
+  priority: 'medium' as const,
+  dueDate: '2026-12-01',
+  estimatedHours: 2,
+  description: '',
+  progress: 0,
 }
 
 function archivedByDefault(...ids: string[]): Subject[] {
@@ -91,7 +105,7 @@ describe('archived subjects cannot receive new assignments', () => {
     let reason = ''
     act(() => {
       const outcome = result.current.addAssignment({
-        ...FORM_VALUES,
+        ...NEW_TASK,
         title: 'Should not be added',
         subjectId: 'sub-calc',
         estimatedHours: 2,
@@ -280,7 +294,7 @@ describe('restoring a subject enables assignment creation', () => {
     act(() => {
       expect(
         blocked.result.current.addAssignment({
-          ...FORM_VALUES,
+          ...NEW_TASK,
           title: 'Blocked once',
           subjectId: 'sub-calc',
           estimatedHours: 2,
@@ -295,7 +309,7 @@ describe('restoring a subject enables assignment creation', () => {
     act(() => {
       expect(
         result.current.addAssignment({
-          ...FORM_VALUES,
+          ...NEW_TASK,
           title: 'Allowed after restore',
           subjectId: 'sub-calc',
           estimatedHours: 2,
@@ -314,10 +328,17 @@ describe('restoring a subject enables assignment creation', () => {
     await user.click(screen.getByRole('button', { name: /Archive Calculus II/i }))
     await screen.findByRole('button', { name: /Restore Calculus II/i })
 
+    // The Add Assignment dropdown must stop offering it. Scope to the form,
+    // because the page's subject *filter* deliberately keeps archived subjects.
+    const formOptions = async () => {
+      const form = await screen.findByRole('form', { name: /add assignment/i })
+      return within(form).getAllByRole('option')
+    }
+
     await user.click(screen.getAllByRole('link', { name: /assignments/i })[0]!)
     await user.click(screen.getByRole('button', { name: /^Add assignment$/i }))
 
-    let options = await screen.findAllByRole('option')
+    let options = await formOptions()
     expect(options.some((option) => option.getAttribute('value') === 'sub-calc')).toBe(false)
     expect(options.some((option) => option.getAttribute('value') === 'sub-ds')).toBe(true)
 
@@ -328,7 +349,7 @@ describe('restoring a subject enables assignment creation', () => {
     await user.click(screen.getAllByRole('link', { name: /assignments/i })[0]!)
     await user.click(await screen.findByRole('button', { name: /^Add assignment$/i }))
 
-    options = await screen.findAllByRole('option')
+    options = await formOptions()
     expect(options.some((option) => option.getAttribute('value') === 'sub-calc')).toBe(true)
   })
 

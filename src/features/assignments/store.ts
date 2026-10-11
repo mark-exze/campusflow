@@ -1,8 +1,17 @@
 import { useCallback, useMemo } from 'react'
 
 import { useLocalStorage } from '../../hooks/useLocalStorage'
+import {
+  DEFAULT_FILTERS,
+  filterAssignments,
+  isAssignmentOverdue,
+  sortAssignmentsBy,
+  type AssignmentFilters,
+  type SortKey,
+} from '../../lib/assignmentFilters'
+import { reconcileProgress } from '../../lib/assignmentProgress'
 import { STORAGE_KEYS } from '../../lib/constants'
-import { daysUntil, timeToMinutes } from '../../lib/date'
+import { daysUntil, getTodayDateString, timeToMinutes } from '../../lib/date'
 import { MOCK_ASSIGNMENTS, MOCK_SUBJECTS } from '../../lib/mockData'
 import { deriveClassSessions, normalizeSubject } from '../../lib/subjects'
 import type {
@@ -22,6 +31,7 @@ export type NewAssignmentInput = {
   dueDate: string
   estimatedHours: number
   description: string
+  progress?: number | undefined
 }
 
 /**
@@ -31,6 +41,11 @@ export type NewAssignmentInput = {
  */
 export type AddAssignmentResult =
   | { status: 'created'; assignment: Assignment }
+  | { status: 'blocked'; reason: string }
+
+/** Result of an update attempt, validated at the store layer as well as the UI. */
+export type UpdateAssignmentResult =
+  | { status: 'updated'; assignment: Assignment }
   | { status: 'blocked'; reason: string }
 
 const PRIORITY_RANK: Record<AssignmentPriority, number> = {
@@ -58,6 +73,18 @@ export function sortAssignments(assignments: Assignment[]): Assignment[] {
 }
 
 /**
+ * Coerce a stored record into a consistent assignment. Progress is re-derived
+ * from the status so legacy records without one still resolve correctly, and
+ * a completed record can never report less than 100%.
+ */
+export function normalizeAssignment(raw: Assignment): Assignment {
+  return {
+    ...raw,
+    progress: reconcileProgress(raw.status, raw.progress),
+  }
+}
+
+/**
  * Assignment state backed by localStorage.
  *
  * Subjects live in the same localStorage key the subjects store writes, so the
@@ -66,7 +93,7 @@ export function sortAssignments(assignments: Assignment[]): Assignment[] {
  */
 export function useAssignments() {
   const {
-    value: assignments,
+    value: rawAssignments,
     setValue: setAssignments,
     reset: resetAssignments,
   } = useLocalStorage<Assignment[]>(STORAGE_KEYS.assignments, [...MOCK_ASSIGNMENTS])
@@ -74,6 +101,11 @@ export function useAssignments() {
   const { value: storedSubjects } = useLocalStorage<Subject[]>(STORAGE_KEYS.subjects, [
     ...MOCK_SUBJECTS,
   ])
+
+  const assignments: Assignment[] = useMemo(
+    () => rawAssignments.map((assignment) => normalizeAssignment(assignment)),
+    [rawAssignments],
+  )
 
   const subjects: readonly Subject[] = useMemo(
     () =>
@@ -88,6 +120,8 @@ export function useAssignments() {
     [subjects],
   )
 
+  const todayIso = getTodayDateString()
+
   const subjectMap = useMemo(() => {
     const map = new Map<string, Subject>()
     for (const subject of subjects) {
@@ -100,6 +134,32 @@ export function useAssignments() {
     (subjectId: string): Subject | undefined => subjectMap.get(subjectId),
     [subjectMap],
   )
+
+  /**
+   * Read the newest subject list straight from storage.
+   *
+   * More than one hook holds this key, so a component that has been mounted
+   * since a subject was archived can still be carrying a stale snapshot.
+   * Validation must therefore consult the authoritative value rather than the
+   * one captured during render, otherwise the archived-subject guard could be
+   * bypassed through a different code path.
+   */
+  const readLiveSubjects = useCallback((): readonly Subject[] => {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEYS.subjects)
+      if (raw !== null) {
+        const parsed: unknown = JSON.parse(raw)
+        if (Array.isArray(parsed)) {
+          return parsed
+            .map((subject) => normalizeSubject(subject as Subject))
+            .filter((subject): subject is Subject => subject !== null)
+        }
+      }
+    } catch {
+      /* fall back to the rendered snapshot */
+    }
+    return subjects
+  }, [subjects])
 
   const getAssignmentStatus = useCallback(
     (id: string): AssignmentStatus | undefined =>
@@ -119,8 +179,8 @@ export function useAssignments() {
   )
 
   const overdueAssignments = useMemo(
-    () => activeAssignments.filter((assignment) => daysUntil(assignment.dueDate) < 0),
-    [activeAssignments],
+    () => activeAssignments.filter((assignment) => isAssignmentOverdue(assignment, todayIso)),
+    [activeAssignments, todayIso],
   )
 
   const completedAssignments = useMemo(
@@ -145,6 +205,9 @@ export function useAssignments() {
   )
 
   const stats = useMemo(() => {
+    const openProgress = activeAssignments.map((assignment) => assignment.progress ?? 0)
+    const totalOpenProgress = openProgress.reduce((total, value) => total + value, 0)
+
     return {
       active: activeAssignments.length,
       dueToday: activeAssignments.filter((assignment) => daysUntil(assignment.dueDate) === 0)
@@ -158,12 +221,15 @@ export function useAssignments() {
           0,
         ),
       ),
+      // Average completion across open work; 0 when nothing is open.
+      averageProgress:
+        openProgress.length > 0 ? Math.round(totalOpenProgress / openProgress.length) : 0,
     }
   }, [activeAssignments, completedAssignments.length, overdueAssignments.length, todayClasses])
 
   const addAssignment = useCallback(
     (input: NewAssignmentInput): AddAssignmentResult => {
-      const subject = subjects.find((candidate) => candidate.id === input.subjectId)
+      const subject = readLiveSubjects().find((candidate) => candidate.id === input.subjectId)
 
       if (!subject) {
         return { status: 'blocked', reason: 'Choose a subject.' }
@@ -179,16 +245,18 @@ export function useAssignments() {
       }
 
       const now = new Date().toISOString()
+      const status: AssignmentStatus = 'pending'
       const assignment: Assignment = {
         id: createId(),
         title: input.title.trim(),
         subjectId: input.subjectId,
         type: input.type,
         priority: input.priority,
-        status: 'pending',
+        status,
         dueDate: input.dueDate,
         estimatedHours: input.estimatedHours,
         description: input.description.trim(),
+        progress: reconcileProgress(status, input.progress),
         createdAt: now,
         updatedAt: now,
       }
@@ -196,20 +264,55 @@ export function useAssignments() {
       setAssignments((previous) => [assignment, ...previous])
       return { status: 'created', assignment }
     },
-    [setAssignments, subjects],
+    [readLiveSubjects, setAssignments],
   )
 
   const updateAssignment = useCallback(
-    (id: string, updates: Partial<Omit<Assignment, 'id' | 'createdAt'>>) => {
-      setAssignments((previous) =>
-        previous.map((assignment) =>
-          assignment.id === id
-            ? { ...assignment, ...updates, updatedAt: new Date().toISOString() }
-            : assignment,
-        ),
+    (id: string, updates: Partial<Omit<Assignment, 'id' | 'createdAt'>>): UpdateAssignmentResult => {
+      const existing = rawAssignments.find((assignment) => assignment.id === id)
+      if (!existing) {
+        return { status: 'blocked', reason: 'That assignment no longer exists.' }
+      }
+
+      const nextSubjectId = updates.subjectId ?? existing.subjectId
+
+      // Subject changes are validated here too, not just in the form, so an
+      // archived subject can never be picked up through another code path.
+      if (updates.subjectId !== undefined && updates.subjectId !== existing.subjectId) {
+        const subject = readLiveSubjects().find((candidate) => candidate.id === nextSubjectId)
+
+        if (!subject) {
+          return { status: 'blocked', reason: 'Choose a subject.' }
+        }
+        if (subject.archived) {
+          return {
+            status: 'blocked',
+            reason: `${subject.name} is archived. Restore it before adding assignments to it.`,
+          }
+        }
+      }
+
+      const nextStatus = updates.status ?? existing.status
+      const nextProgress = reconcileProgress(
+        nextStatus,
+        updates.progress !== undefined ? updates.progress : existing.progress,
       )
+
+      const updated: Assignment = normalizeAssignment({
+        ...existing,
+        ...updates,
+        status: nextStatus,
+        progress: nextProgress,
+        updatedAt: new Date().toISOString(),
+      })
+
+      setAssignments((previous) =>
+        previous.map((assignment) => (assignment.id === id ? updated : assignment)),
+      )
+
+      return { status: 'updated', assignment: updated }
     },
-    [setAssignments],
+    [rawAssignments, readLiveSubjects, setAssignments],
   )
 
   const setStatus = useCallback(
@@ -217,21 +320,23 @@ export function useAssignments() {
     [updateAssignment],
   )
 
+  const setProgress = useCallback(
+    (id: string, progress: number) => updateAssignment(id, { progress }),
+    [updateAssignment],
+  )
+
   const toggleComplete = useCallback(
     (id: string) => {
-      setAssignments((previous) =>
-        previous.map((assignment) =>
-          assignment.id === id
-            ? {
-                ...assignment,
-                status: assignment.status === 'completed' ? 'pending' : 'completed',
-                updatedAt: new Date().toISOString(),
-              }
-            : assignment,
-        ),
-      )
+      const existing = rawAssignments.find((assignment) => assignment.id === id)
+      if (!existing) return
+
+      const status: AssignmentStatus =
+        existing.status === 'completed' ? 'pending' : 'completed'
+
+      // Reconcile in one write so status and progress never disagree.
+      updateAssignment(id, { status, progress: reconcileProgress(status, existing.progress) })
     },
-    [setAssignments],
+    [rawAssignments, updateAssignment],
   )
 
   const deleteAssignment = useCallback(
@@ -259,11 +364,19 @@ export function useAssignments() {
     resetAssignments()
   }, [resetAssignments])
 
+  /** Apply the given filters and sort, against the full assignment list. */
+  const getVisibleAssignments = useCallback(
+    (filters: AssignmentFilters = DEFAULT_FILTERS, sortKey: SortKey = 'deadline-asc') =>
+      sortAssignmentsBy(filterAssignments(assignments, filters, todayIso), sortKey),
+    [assignments, todayIso],
+  )
+
   return {
     assignments: sortedAssignments,
     subjects,
     subjectMap,
     classSessions,
+    todayIso,
     activeAssignments,
     upcomingAssignments,
     overdueAssignments,
@@ -276,10 +389,12 @@ export function useAssignments() {
     addAssignment,
     updateAssignment,
     setStatus,
+    setProgress,
     toggleComplete,
     deleteAssignment,
     deleteAssignmentsBySubject,
     resetToSampleData,
+    getVisibleAssignments,
   }
 }
 
