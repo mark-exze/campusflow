@@ -37,6 +37,17 @@ export function Modal({
   const panelRef = useRef<HTMLDivElement>(null)
   const previouslyFocused = useRef<HTMLElement | null>(null)
 
+  // Hold the latest close handler in a ref. Callers pass an inline arrow, so
+  // its identity changes on every render; depending on it in the effect below
+  // would re-run focus setup and pull focus back to the panel on each
+  // keystroke inside a form.
+  const onCloseRef = useRef(onClose)
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
+
+  // Focus setup, trapping, restoration and scroll locking depend only on the
+  // open state, so a parent re-render never disturbs them.
   useEffect(() => {
     if (!open) return
 
@@ -46,7 +57,7 @@ export function Modal({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
-        onClose()
+        onCloseRef.current()
         return
       }
 
@@ -86,7 +97,7 @@ export function Modal({
       document.body.style.overflow = previousOverflow
       previouslyFocused.current?.focus()
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
 

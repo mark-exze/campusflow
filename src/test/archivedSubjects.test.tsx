@@ -320,7 +320,7 @@ describe('restoring a subject enables assignment creation', () => {
     expect(result.current.assignments.some((a) => a.title === 'Allowed after restore')).toBe(true)
   })
 
-  it('removes a subject from the dropdown when archived and restores it on restore', async () => {
+  it('removes an archived subject from the Add Assignment dropdown', async () => {
     const user = userEvent.setup()
     renderAppAt('/subjects')
 
@@ -330,26 +330,28 @@ describe('restoring a subject enables assignment creation', () => {
 
     // The Add Assignment dropdown must stop offering it. Scope to the form,
     // because the page's subject *filter* deliberately keeps archived subjects.
-    const formOptions = async () => {
-      const form = await screen.findByRole('form', { name: /add assignment/i })
-      return within(form).getAllByRole('option')
-    }
-
     await user.click(screen.getAllByRole('link', { name: /assignments/i })[0]!)
     await user.click(screen.getByRole('button', { name: /^Add assignment$/i }))
 
-    let options = await formOptions()
+    const form = await screen.findByRole('form', { name: /add assignment/i })
+    const options = within(form).getAllByRole('option')
     expect(options.some((option) => option.getAttribute('value') === 'sub-calc')).toBe(false)
     expect(options.some((option) => option.getAttribute('value') === 'sub-ds')).toBe(true)
+  })
 
-    // Go back and restore it.
-    await user.click(screen.getAllByRole('link', { name: /subjects/i })[0]!)
+  it('returns a restored subject to the Add Assignment dropdown', async () => {
+    const user = userEvent.setup()
+    setArchivedInStore('sub-calc', true)
+    renderAppAt('/subjects')
+
+    // Restore it, then confirm the Add Assignment form offers it again.
     await user.click(await screen.findByRole('button', { name: /Restore Calculus II/i }))
 
     await user.click(screen.getAllByRole('link', { name: /assignments/i })[0]!)
     await user.click(await screen.findByRole('button', { name: /^Add assignment$/i }))
 
-    options = await formOptions()
+    const form = await screen.findByRole('form', { name: /add assignment/i })
+    const options = within(form).getAllByRole('option')
     expect(options.some((option) => option.getAttribute('value') === 'sub-calc')).toBe(true)
   })
 
