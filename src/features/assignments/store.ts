@@ -3,7 +3,8 @@ import { useCallback, useMemo } from 'react'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { STORAGE_KEYS } from '../../lib/constants'
 import { daysUntil, timeToMinutes } from '../../lib/date'
-import { MOCK_ASSIGNMENTS, MOCK_CLASS_SESSIONS, MOCK_SUBJECTS } from '../../lib/mockData'
+import { MOCK_ASSIGNMENTS, MOCK_SUBJECTS } from '../../lib/mockData'
+import { deriveClassSessions, normalizeSubject } from '../../lib/subjects'
 import type {
   Assignment,
   AssignmentPriority,
@@ -22,6 +23,15 @@ export type NewAssignmentInput = {
   estimatedHours: number
   description: string
 }
+
+/**
+ * Result of a create attempt. Creation is refused when the target subject is
+ * archived or missing, so no assignment can reference a subject that is not
+ * available for new work.
+ */
+export type AddAssignmentResult =
+  | { status: 'created'; assignment: Assignment }
+  | { status: 'blocked'; reason: string }
 
 const PRIORITY_RANK: Record<AssignmentPriority, number> = {
   high: 0,
@@ -50,15 +60,33 @@ export function sortAssignments(assignments: Assignment[]): Assignment[] {
 /**
  * Assignment state backed by localStorage.
  *
- * Subjects and class sessions stay static mock data; assignments are the one
- * thing a student can create and change locally in Phase 1.
+ * Subjects live in the same localStorage key the subjects store writes, so the
+ * dashboard and the assignment forms always see the student's own list. Class
+ * sessions are derived from subject schedules rather than stored separately.
  */
 export function useAssignments() {
-  const { value: assignments, setValue: setAssignments, reset } =
-    useLocalStorage<Assignment[]>(STORAGE_KEYS.assignments, [...MOCK_ASSIGNMENTS])
+  const {
+    value: assignments,
+    setValue: setAssignments,
+    reset: resetAssignments,
+  } = useLocalStorage<Assignment[]>(STORAGE_KEYS.assignments, [...MOCK_ASSIGNMENTS])
 
-  const subjects: readonly Subject[] = MOCK_SUBJECTS
-  const classSessions: readonly ClassSession[] = MOCK_CLASS_SESSIONS
+  const { value: storedSubjects } = useLocalStorage<Subject[]>(STORAGE_KEYS.subjects, [
+    ...MOCK_SUBJECTS,
+  ])
+
+  const subjects: readonly Subject[] = useMemo(
+    () =>
+      storedSubjects
+        .map((subject) => normalizeSubject(subject))
+        .filter((subject): subject is Subject => subject !== null),
+    [storedSubjects],
+  )
+
+  const classSessions: readonly ClassSession[] = useMemo(
+    () => deriveClassSessions(subjects),
+    [subjects],
+  )
 
   const subjectMap = useMemo(() => {
     const map = new Map<string, Subject>()
@@ -134,7 +162,22 @@ export function useAssignments() {
   }, [activeAssignments, completedAssignments.length, overdueAssignments.length, todayClasses])
 
   const addAssignment = useCallback(
-    (input: NewAssignmentInput): Assignment => {
+    (input: NewAssignmentInput): AddAssignmentResult => {
+      const subject = subjects.find((candidate) => candidate.id === input.subjectId)
+
+      if (!subject) {
+        return { status: 'blocked', reason: 'Choose a subject.' }
+      }
+
+      // Archived subjects keep their existing assignments, but cannot take new
+      // ones. This is the store-level backstop behind the form validation.
+      if (subject.archived) {
+        return {
+          status: 'blocked',
+          reason: `${subject.name} is archived. Restore it before adding assignments to it.`,
+        }
+      }
+
       const now = new Date().toISOString()
       const assignment: Assignment = {
         id: createId(),
@@ -151,9 +194,9 @@ export function useAssignments() {
       }
 
       setAssignments((previous) => [assignment, ...previous])
-      return assignment
+      return { status: 'created', assignment }
     },
-    [setAssignments],
+    [setAssignments, subjects],
   )
 
   const updateAssignment = useCallback(
@@ -198,9 +241,23 @@ export function useAssignments() {
     [setAssignments],
   )
 
+  /**
+   * Remove every assignment that belongs to a subject. Called only after the
+   * student explicitly confirms subject deletion, so assignments are never
+   * left pointing at a subject that no longer exists.
+   */
+  const deleteAssignmentsBySubject = useCallback(
+    (subjectId: string) => {
+      setAssignments((previous) =>
+        previous.filter((assignment) => assignment.subjectId !== subjectId),
+      )
+    },
+    [setAssignments],
+  )
+
   const resetToSampleData = useCallback(() => {
-    reset()
-  }, [reset])
+    resetAssignments()
+  }, [resetAssignments])
 
   return {
     assignments: sortedAssignments,
@@ -221,6 +278,7 @@ export function useAssignments() {
     setStatus,
     toggleComplete,
     deleteAssignment,
+    deleteAssignmentsBySubject,
     resetToSampleData,
   }
 }

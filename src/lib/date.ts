@@ -7,6 +7,8 @@
  * deadline would appear a day early.
  */
 
+import type { DateFormatPreference } from '../types'
+
 /** Format a Date as a local `yyyy-mm-dd` string. */
 function toIsoDate(date: Date): string {
   const year = date.getFullYear()
@@ -43,14 +45,11 @@ export function formatLongDate(isoDate: string): string {
   })
 }
 
-export function formatDayHeader(isoDate: string): string {
+export function formatDayHeader(isoDate: string, dateFormat: DateFormatPreference): string {
   const date = parseIsoDate(isoDate)
   if (Number.isNaN(date.getTime())) return isoDate
-  return date.toLocaleDateString(undefined, {
-    weekday: 'long',
-    month: 'short',
-    day: 'numeric',
-  })
+  const weekday = date.toLocaleDateString(undefined, { weekday: 'long' })
+  return `${weekday}, ${formatDateWithPreference(isoDate, dateFormat)}`
 }
 
 export function daysUntil(isoDate: string): number {
@@ -93,6 +92,33 @@ export function getWeekDates(startIso: string): string[] {
     date.setDate(start.getDate() + index)
     return toIsoDate(date)
   })
+}
+
+/**
+ * Render a `yyyy-mm-dd` value using the student's stored preference. Invalid
+ * input is echoed back unchanged instead of rendering "Invalid Date".
+ */
+export function formatDateWithPreference(
+  isoDate: string,
+  format: DateFormatPreference,
+): string {
+  const date = parseIsoDate(isoDate)
+  if (Number.isNaN(date.getTime())) return isoDate
+
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  switch (format) {
+    case 'dmy':
+      return `${day}/${month}/${year}`
+    case 'mdy':
+      return `${month}/${day}/${year}`
+    case 'ymd':
+      return `${year}-${month}-${day}`
+    default:
+      return isoDate
+  }
 }
 
 export function formatTime(time: string): string {

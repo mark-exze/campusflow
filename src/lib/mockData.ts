@@ -2,20 +2,30 @@
  * Typed local mock data for Phase 1.
  *
  * This is SAMPLE data only — there is no backend and no AI service behind it.
- * Student-authored assignment changes are persisted separately in
- * localStorage by the assignments store.
+ * Subjects, assignments and the student profile are all seeded from here and
+ * then persisted in localStorage by their own stores.
  */
 
 import { addDays, getTodayDateString } from './date'
 import { ROUTES } from './constants'
-import type { Assignment, ClassSession, QuickAction, Subject } from '../types'
+import { createDefaultProfile } from './profile'
+import type { Assignment, QuickAction, Subject } from '../types'
 
 const today = getTodayDateString()
 const createdAt = '2026-09-01T09:00:00.000Z'
 const updatedAt = '2026-10-01T09:00:00.000Z'
 
-export const CURRENT_SEMESTER = 'Fall 2026'
+/**
+ * Sample subjects are labelled with the default academic year and term rather
+ * than a hardcoded string, so the demo data never contradicts the profile.
+ */
+const defaultProfile = createDefaultProfile()
+export const MOCK_SEMESTER = `${defaultProfile.academicTerm} ${defaultProfile.academicYear}`
 
+/**
+ * Initial demo subjects. Each carries its own weekly schedule, which the store
+ * flattens into class sessions for the calendar.
+ */
 export const MOCK_SUBJECTS: readonly Subject[] = [
   {
     id: 'sub-calc',
@@ -23,9 +33,15 @@ export const MOCK_SUBJECTS: readonly Subject[] = [
     code: 'MATH 201',
     color: 'bg-sky-500',
     instructor: 'Dr. Amara Patel',
-    semester: CURRENT_SEMESTER,
+    semester: MOCK_SEMESTER,
     credits: 4,
     grade: 88,
+    location: 'Room 204',
+    archived: false,
+    schedule: [
+      { dayOfWeek: 1, startTime: '09:00', endTime: '10:15' },
+      { dayOfWeek: 3, startTime: '12:00', endTime: '12:50' },
+    ],
   },
   {
     id: 'sub-lit',
@@ -33,9 +49,16 @@ export const MOCK_SUBJECTS: readonly Subject[] = [
     code: 'ENG 210',
     color: 'bg-emerald-500',
     instructor: 'Prof. Luis Gomez',
-    semester: CURRENT_SEMESTER,
+    semester: MOCK_SEMESTER,
     credits: 3,
     grade: 91,
+    location: 'Room 312',
+    archived: false,
+    schedule: [
+      { dayOfWeek: 0, startTime: '14:00', endTime: '16:00' },
+      { dayOfWeek: 1, startTime: '11:00', endTime: '11:50' },
+      { dayOfWeek: 3, startTime: '14:00', endTime: '14:50' },
+    ],
   },
   {
     id: 'sub-phys',
@@ -43,9 +66,16 @@ export const MOCK_SUBJECTS: readonly Subject[] = [
     code: 'PHY 102',
     color: 'bg-amber-500',
     instructor: 'Dr. Kevin Nguyen',
-    semester: CURRENT_SEMESTER,
+    semester: MOCK_SEMESTER,
     credits: 4,
     grade: 76,
+    location: 'Science Bldg 12',
+    archived: false,
+    schedule: [
+      { dayOfWeek: 1, startTime: '14:00', endTime: '16:00' },
+      { dayOfWeek: 4, startTime: '13:00', endTime: '14:15' },
+      { dayOfWeek: 6, startTime: '10:00', endTime: '12:00' },
+    ],
   },
   {
     id: 'sub-ds',
@@ -53,9 +83,15 @@ export const MOCK_SUBJECTS: readonly Subject[] = [
     code: 'CS 250',
     color: 'bg-violet-500',
     instructor: 'Prof. Maya Stone',
-    semester: CURRENT_SEMESTER,
+    semester: MOCK_SEMESTER,
     credits: 4,
     grade: 84,
+    location: 'CS Lab 2',
+    archived: false,
+    schedule: [
+      { dayOfWeek: 2, startTime: '10:00', endTime: '11:15' },
+      { dayOfWeek: 4, startTime: '10:00', endTime: '11:15' },
+    ],
   },
   {
     id: 'sub-hist',
@@ -63,9 +99,15 @@ export const MOCK_SUBJECTS: readonly Subject[] = [
     code: 'HIS 150',
     color: 'bg-rose-500',
     instructor: 'Dr. Rachel Brooks',
-    semester: CURRENT_SEMESTER,
+    semester: MOCK_SEMESTER,
     credits: 3,
     grade: 79,
+    location: 'Room 110',
+    archived: false,
+    schedule: [
+      { dayOfWeek: 3, startTime: '09:00', endTime: '10:15' },
+      { dayOfWeek: 5, startTime: '11:00', endTime: '12:15' },
+    ],
   },
   {
     id: 'sub-chem',
@@ -73,145 +115,19 @@ export const MOCK_SUBJECTS: readonly Subject[] = [
     code: 'CHEM 110',
     color: 'bg-teal-500',
     instructor: 'Prof. Tomas Alvarez',
-    semester: CURRENT_SEMESTER,
+    semester: MOCK_SEMESTER,
     credits: 5,
     grade: 82,
+    location: 'Chem Bldg 8',
+    archived: false,
+    schedule: [
+      { dayOfWeek: 2, startTime: '13:00', endTime: '14:50' },
+      { dayOfWeek: 5, startTime: '09:00', endTime: '10:50' },
+    ],
   },
 ]
 
-/**
- * Weekly class schedule covering every weekday, so "Today's classes" always
- * has content regardless of the day the app is opened.
- */
-export const MOCK_CLASS_SESSIONS: readonly ClassSession[] = [
-  {
-    id: 'cls-sun-1',
-    subjectId: 'sub-lit',
-    name: 'Reading Lab',
-    dayOfWeek: 0,
-    startTime: '14:00',
-    endTime: '16:00',
-    location: 'Library Room 2',
-  },
-  {
-    id: 'cls-mon-1',
-    subjectId: 'sub-calc',
-    name: 'Calculus II',
-    dayOfWeek: 1,
-    startTime: '09:00',
-    endTime: '10:15',
-    location: 'Room 204',
-  },
-  {
-    id: 'cls-mon-2',
-    subjectId: 'sub-lit',
-    name: 'English Literature',
-    dayOfWeek: 1,
-    startTime: '11:00',
-    endTime: '11:50',
-    location: 'Room 312',
-  },
-  {
-    id: 'cls-mon-3',
-    subjectId: 'sub-phys',
-    name: 'Physics Lab',
-    dayOfWeek: 1,
-    startTime: '14:00',
-    endTime: '16:00',
-    location: 'Science Bldg 12',
-  },
-  {
-    id: 'cls-tue-1',
-    subjectId: 'sub-ds',
-    name: 'Data Structures',
-    dayOfWeek: 2,
-    startTime: '10:00',
-    endTime: '11:15',
-    location: 'CS Lab 2',
-  },
-  {
-    id: 'cls-tue-2',
-    subjectId: 'sub-chem',
-    name: 'Organic Chemistry',
-    dayOfWeek: 2,
-    startTime: '13:00',
-    endTime: '14:50',
-    location: 'Chem Bldg 8',
-  },
-  {
-    id: 'cls-wed-1',
-    subjectId: 'sub-hist',
-    name: 'World History',
-    dayOfWeek: 3,
-    startTime: '09:00',
-    endTime: '10:15',
-    location: 'Room 110',
-  },
-  {
-    id: 'cls-wed-2',
-    subjectId: 'sub-calc',
-    name: 'Calculus II Tutorial',
-    dayOfWeek: 3,
-    startTime: '12:00',
-    endTime: '12:50',
-    location: 'Room 206',
-  },
-  {
-    id: 'cls-wed-3',
-    subjectId: 'sub-lit',
-    name: 'English Seminar',
-    dayOfWeek: 3,
-    startTime: '14:00',
-    endTime: '14:50',
-    location: 'Room 312',
-  },
-  {
-    id: 'cls-thu-1',
-    subjectId: 'sub-ds',
-    name: 'Data Structures',
-    dayOfWeek: 4,
-    startTime: '10:00',
-    endTime: '11:15',
-    location: 'CS Lab 2',
-  },
-  {
-    id: 'cls-thu-2',
-    subjectId: 'sub-phys',
-    name: 'Physics Lecture',
-    dayOfWeek: 4,
-    startTime: '13:00',
-    endTime: '14:15',
-    location: 'Room 208',
-  },
-  {
-    id: 'cls-fri-1',
-    subjectId: 'sub-chem',
-    name: 'Organic Chemistry',
-    dayOfWeek: 5,
-    startTime: '09:00',
-    endTime: '10:50',
-    location: 'Chem Bldg 8',
-  },
-  {
-    id: 'cls-fri-2',
-    subjectId: 'sub-hist',
-    name: 'World History',
-    dayOfWeek: 5,
-    startTime: '11:00',
-    endTime: '12:15',
-    location: 'Room 110',
-  },
-  {
-    id: 'cls-sat-1',
-    subjectId: 'sub-phys',
-    name: 'Physics Problem Session',
-    dayOfWeek: 6,
-    startTime: '10:00',
-    endTime: '12:00',
-    location: 'Science Bldg 12',
-  },
-]
-
+/** Seed assignments, referenced to the subjects above by id. */
 export const MOCK_ASSIGNMENTS: readonly Assignment[] = [
   {
     id: 'asg-1',
@@ -318,6 +234,7 @@ export const MOCK_ASSIGNMENTS: readonly Assignment[] = [
     updatedAt,
   },
 ]
+
 /**
  * Quick actions point at pages that exist in this phase, so every control
  * on screen does something real.

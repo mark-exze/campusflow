@@ -3,15 +3,44 @@
  * These are intentionally simple and local — they will evolve with the backend.
  */
 
+/**
+ * A single recurring weekly class slot. One subject can have several, which is
+ * how the calendar is derived (see `deriveClassSessions`).
+ */
+export type SubjectSchedule = {
+  dayOfWeek: number // 0 = Sunday
+  startTime: string // HH:MM
+  endTime: string // HH:MM
+}
+
 export type Subject = {
   id: string
   name: string
   code: string
-  color: string
-  instructor: string
+  color: string // Tailwind background class, e.g. 'bg-sky-500'
+  instructor: string // optional
   semester: string
   credits: number
   grade: number // sample overall grade, 0-100
+  location: string // optional classroom
+  schedule: SubjectSchedule[]
+  archived: boolean
+}
+
+export type SchoolLevel = 'high-school' | 'senior-high-school' | 'college' | 'university'
+
+export type DateFormatPreference = 'dmy' | 'mdy' | 'ymd'
+
+/**
+ * Student-owned profile. Everything here is editable and persisted locally.
+ */
+export type StudentProfile = {
+  displayName: string
+  schoolLevel: SchoolLevel
+  schoolName: string // optional
+  academicYear: string
+  academicTerm: string
+  dateFormat: DateFormatPreference
 }
 
 export type AssignmentType =

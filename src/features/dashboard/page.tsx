@@ -4,9 +4,10 @@ import { Badge } from '../../components/ui/Badge'
 import { ButtonLink } from '../../components/ui/ButtonLink'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { useAssignments } from '../assignments/store'
-import { CURRENT_SEMESTER } from '../../lib/mockData'
+import { useProfile } from '../../hooks/useProfile'
 import { ROUTES } from '../../lib/constants'
 import { formatDayHeader, getTodayDateString } from '../../lib/date'
+import { displayNameOrFallback } from '../../lib/profile'
 import { DashboardStats } from './DashboardStats'
 import { QuickActions } from './QuickActions'
 import { SubjectOverview } from './SubjectOverview'
@@ -30,18 +31,25 @@ export function DashboardPage() {
     getSubject,
     toggleComplete,
   } = useAssignments()
+  const { profile } = useProfile()
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow={`${CURRENT_SEMESTER} · Week 6`}
-        title={`${getGreeting()}, Alex`}
-        description={`Here is your day at a glance — ${formatDayHeader(getTodayDateString())}.`}
+        eyebrow={`${profile.academicTerm} · ${profile.academicYear}`}
+        title={`${getGreeting()}, ${displayNameOrFallback(profile)}`}
+        description={`Here is your day at a glance — ${formatDayHeader(
+          getTodayDateString(),
+          profile.dateFormat,
+        )}.`}
         actions={
           <>
             <Badge tone="brand" icon="Sparkles">
-              Sample data
+              Local data
             </Badge>
+            <ButtonLink to={ROUTES.subjects} variant="secondary" size="sm">
+              Your subjects
+            </ButtonLink>
             <ButtonLink to={ROUTES.assignments} variant="primary" size="sm">
               Manage assignments
             </ButtonLink>
@@ -67,7 +75,7 @@ export function DashboardPage() {
 
       <footer className="pt-2 text-center text-xs text-slate-400 dark:text-slate-500">
         <p>
-          Phase 1 foundation. Grades, AI planning and cloud sync are{' '}
+          Grades, AI planning and cloud sync are{' '}
           <Link
             to={ROUTES.settings}
             className="font-medium text-slate-500 underline underline-offset-2 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"

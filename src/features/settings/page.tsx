@@ -1,11 +1,19 @@
+import { useState } from 'react'
+
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Card, CardBody, CardHeader } from '../../components/ui/Card'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { ThemeToggle } from '../../components/ui/ThemeToggle'
+import { Icon } from '../../components/ui/Icon'
 import { useTheme } from '../../hooks/useTheme'
+import { useProfile } from '../../hooks/useProfile'
 import { APP_NAME } from '../../lib/constants'
+import { schoolLevelLabel } from '../../lib/profile'
 import { useAssignments } from '../assignments/store'
+import { useSubjects } from '../subjects/store'
+import { ProfileForm } from '../profile/ProfileForm'
+import type { StudentProfile } from '../../types'
 
 const THEME_OPTIONS = [
   { value: 'light', label: 'Light', description: 'Always light' },
@@ -23,29 +31,56 @@ const PLANNED_FEATURES = [
 
 export function SettingsPage() {
   const { theme, setTheme, resolvedTheme } = useTheme()
-  const { resetToSampleData, assignments } = useAssignments()
+  const { profile, saveProfile, resetProfile } = useProfile()
+  const { assignments, resetToSampleData } = useAssignments()
+  const { subjects, resetSubjects } = useSubjects()
+
+  const [savedNote, setSavedNote] = useState<string | null>(null)
+
+  const handleProfileSubmit = (next: StudentProfile) => {
+    saveProfile(next)
+    setSavedNote('Profile saved to this browser.')
+  }
 
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Settings"
         title="Preferences"
-        description="Appearance and local data. Phase 1 — no account or sync yet."
+        description="Your details, appearance and local data. Phase 1 — no account or sync yet."
       />
+
+      <p aria-live="polite" className="sr-only">
+        {savedNote ?? ''}
+      </p>
+
+      <Card>
+        <CardHeader
+          title="Student profile"
+          description="Used on your dashboard and subject labels."
+          icon="User"
+          action={<ThemeToggle />}
+        />
+        <CardBody className="mt-4">
+          <ProfileForm
+            profile={profile}
+            onSubmit={handleProfileSubmit}
+            onReset={() => {
+              resetProfile()
+              setSavedNote('Profile reset to defaults.')
+            }}
+          />
+        </CardBody>
+      </Card>
 
       <Card>
         <CardHeader
           title="Appearance"
           description="Choose a theme. System follows your device setting."
           icon="Settings"
-          action={<ThemeToggle />}
         />
         <CardBody className="mt-4">
-          <div
-            role="radiogroup"
-            aria-label="Theme"
-            className="grid gap-2 sm:grid-cols-3"
-          >
+          <div role="radiogroup" aria-label="Theme" className="grid gap-2 sm:grid-cols-3">
             {THEME_OPTIONS.map((option) => {
               const isActive = theme === option.value
               return (
@@ -84,13 +119,28 @@ export function SettingsPage() {
           icon="RotateCcw"
         />
         <CardBody className="mt-4 space-y-3">
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Assignments stored locally: <span className="font-medium">{assignments.length}</span>. Sample
-            subjects and class schedules are not editable in this phase.
+          <dl className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+            <DataStat label="Subjects" value={subjects.length} />
+            <DataStat label="Assignments" value={assignments.length} />
+            <DataStat label="Display name" value={profile.displayName || 'Not set'} />
+            <DataStat label="School level" value={schoolLevelLabel(profile.schoolLevel)} />
+          </dl>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="secondary" size="sm" onClick={() => resetToSampleData()}>
+              <Icon name="RotateCcw" className="size-4" />
+              Restore sample assignments
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => resetSubjects()}>
+              <Icon name="RotateCcw" className="size-4" />
+              Restore sample subjects
+            </Button>
+          </div>
+
+          <p className="text-xs text-slate-400 dark:text-slate-500">
+            Sample data is only restored when you press a restore button — it is
+            never re-created automatically after you delete something.
           </p>
-          <Button variant="secondary" size="sm" onClick={() => resetToSampleData()}>
-            Restore sample assignments
-          </Button>
         </CardBody>
       </Card>
 
@@ -118,6 +168,15 @@ export function SettingsPage() {
           </div>
         </CardBody>
       </Card>
+    </div>
+  )
+}
+
+function DataStat({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800/60">
+      <dt className="text-slate-500 dark:text-slate-400">{label}</dt>
+      <dd className="mt-0.5 font-medium text-slate-900 dark:text-slate-100">{value}</dd>
     </div>
   )
 }

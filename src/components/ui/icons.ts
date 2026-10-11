@@ -8,6 +8,8 @@
 
 import {
   AlertCircle,
+  Archive,
+  ArchiveRestore,
   BookOpen,
   CalendarClock,
   CalendarDays,
@@ -21,6 +23,7 @@ import {
   LayoutDashboard,
   Monitor,
   Moon,
+  Pencil,
   Plus,
   PlusCircle,
   RotateCcw,
@@ -28,6 +31,7 @@ import {
   Sparkles,
   Sun,
   Trash2,
+  User,
   X,
 } from 'lucide-react'
 import type { ComponentType, SVGProps } from 'react'
@@ -36,6 +40,8 @@ export type IconComponent = ComponentType<SVGProps<SVGSVGElement>>
 
 export const iconRegistry: Record<string, IconComponent> = {
   AlertCircle,
+  Archive,
+  ArchiveRestore,
   BookOpen,
   CalendarClock,
   CalendarDays,
@@ -49,6 +55,7 @@ export const iconRegistry: Record<string, IconComponent> = {
   LayoutDashboard,
   Monitor,
   Moon,
+  Pencil,
   Plus,
   PlusCircle,
   RotateCcw,
@@ -56,5 +63,6 @@ export const iconRegistry: Record<string, IconComponent> = {
   Sparkles,
   Sun,
   Trash2,
+  User,
   X,
 }

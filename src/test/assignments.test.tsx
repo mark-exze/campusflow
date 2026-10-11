@@ -74,9 +74,8 @@ describe('useAssignments store', () => {
     const { result } = setup()
 
     let createdId = ''
-
     act(() => {
-      createdId = result.current.addAssignment({
+      const outcome = result.current.addAssignment({
         title: '  New quiz  ',
         subjectId: 'sub-ds',
         type: 'quiz',
@@ -84,7 +83,10 @@ describe('useAssignments store', () => {
         dueDate: '2026-12-01',
         estimatedHours: 2,
         description: '  revision  ',
-      }).id
+      })
+      if (outcome.status === 'created') {
+        createdId = outcome.assignment.id
+      }
     })
 
     // The store exposes a sorted list, so look the item up by id.

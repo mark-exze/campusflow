@@ -1,0 +1,25 @@
+# Normalize line endings across platforms so Windows checkouts do not flip
+# every file to CRLF (the project specifies endOfLine: lf in .prettierrc.json).
+
+* text=auto eol=lf
+
+# Source and config files
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.json  text eol=lf
+*.css   text eol=lf
+*.md    text eol=lf
+*.html  text eol=lf
+*.js    text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+
+# Binary assets must never be line-ending converted
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary

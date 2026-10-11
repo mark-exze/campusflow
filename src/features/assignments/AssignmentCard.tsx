@@ -12,6 +12,7 @@ export type AssignmentCardProps = {
   subject: Subject | undefined
   onToggleComplete: (id: string) => void
   onDelete?: ((id: string) => void) | undefined
+  onEdit?: ((assignment: Assignment) => void) | undefined
 }
 
 export function AssignmentCard({
@@ -19,6 +20,7 @@ export function AssignmentCard({
   subject,
   onToggleComplete,
   onDelete,
+  onEdit,
 }: AssignmentCardProps) {
   const isCompleted = assignment.status === 'completed'
   const isOverdue = !isCompleted && daysUntil(assignment.dueDate) < 0
@@ -86,11 +88,27 @@ export function AssignmentCard({
         </div>
       </div>
 
-      {onDelete ? (
+      {onEdit ? (
         <Button
           variant="ghost"
           size="icon"
           className="size-8 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+          onClick={() => onEdit(assignment)}
+          aria-label={`Edit "${assignment.title}"`}
+          title="Edit"
+        >
+          <Icon name="Pencil" className="size-4" />
+        </Button>
+      ) : null}
+
+      {onDelete ? (
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            'size-8 shrink-0',
+            onEdit && 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100',
+          )}
           onClick={() => onDelete(assignment.id)}
           aria-label={`Delete "${assignment.title}"`}
           title="Delete"

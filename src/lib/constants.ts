@@ -2,10 +2,14 @@
  * Application-wide constants and helpers.
  */
 
+import type { DateFormatPreference, SchoolLevel } from '../types'
+
 export const APP_NAME = 'CampusFlow AI' as const
 
 export const STORAGE_KEYS = {
   assignments: 'campusflow.assignments.v1',
+  subjects: 'campusflow.subjects.v1',
+  profile: 'campusflow.profile.v1',
   theme: 'campusflow.theme.v1',
 } as const
 
@@ -31,6 +35,27 @@ export const GRADE_BANDS: readonly {
   { label: 'C', min: 70, max: 79, color: 'text-amber-600 dark:text-amber-400' },
   { label: 'D', min: 60, max: 69, color: 'text-orange-600 dark:text-orange-400' },
   { label: 'F', min: 0, max: 59, color: 'text-rose-600 dark:text-rose-400' },
+]
+
+export const SCHOOL_LEVELS: readonly {
+  value: SchoolLevel
+  label: string
+  defaultTerm: string
+}[] = [
+  { value: 'high-school', label: 'High School', defaultTerm: '1st Semester' },
+  { value: 'senior-high-school', label: 'Senior High School', defaultTerm: '1st Semester' },
+  { value: 'college', label: 'College', defaultTerm: '1st Term' },
+  { value: 'university', label: 'University', defaultTerm: 'Fall Term' },
+]
+
+export const DATE_FORMATS: readonly {
+  value: DateFormatPreference
+  label: string
+  example: string
+}[] = [
+  { value: 'dmy', label: 'Day / Month / Year', example: '11/10/2026' },
+  { value: 'mdy', label: 'Month / Day / Year', example: '10/11/2026' },
+  { value: 'ymd', label: 'Year / Month / Day', example: '2026-10-11' },
 ]
 
 export const ASSIGNMENT_TYPES: readonly {
@@ -67,10 +92,47 @@ export const STATUS_OPTIONS: readonly {
   { value: 'completed', label: 'Completed' },
 ]
 
+/**
+ * Colour palette offered in the subject form. Values are Tailwind background
+ * utilities so they work with the existing dot and stripe markers.
+ */
+export const SUBJECT_COLORS: readonly {
+  value: string
+  label: string
+}[] = [
+  { value: 'bg-sky-500', label: 'Sky blue' },
+  { value: 'bg-emerald-500', label: 'Green' },
+  { value: 'bg-amber-500', label: 'Amber' },
+  { value: 'bg-violet-500', label: 'Violet' },
+  { value: 'bg-rose-500', label: 'Rose' },
+  { value: 'bg-teal-500', label: 'Teal' },
+  { value: 'bg-orange-500', label: 'Orange' },
+  { value: 'bg-fuchsia-500', label: 'Fuchsia' },
+]
+
 export const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
+export const DAY_NAMES_FULL = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+] as const
 export const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ] as const
 
 export const NAV_ITEMS: readonly {

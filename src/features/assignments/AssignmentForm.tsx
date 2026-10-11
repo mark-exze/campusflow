@@ -1,14 +1,16 @@
 import { useId, useState } from 'react'
-import type { ChangeEvent, FormEvent, ReactNode } from 'react'
+import type { ChangeEvent, FormEvent } from 'react'
 
+import { Field, Input, Select, Textarea } from '../../components/ui/Field'
+import { Icon } from '../../components/ui/Icon'
+import { Button } from '../../components/ui/Button'
 import { cn } from '../../lib/utils'
 import { addDays, getTodayDateString } from '../../lib/date'
 import { ASSIGNMENT_TYPES, PRIORITY_OPTIONS } from '../../lib/constants'
-import { Icon } from '../../components/ui/Icon'
-import { Button } from '../../components/ui/Button'
 import type { AssignmentPriority, AssignmentType, Subject } from '../../types'
 import {
   defaultSubjectId,
+  editableSubjectOptions,
   validateAssignmentForm,
   type AssignmentFormErrors,
 } from './validation'
@@ -24,10 +26,21 @@ export type AssignmentFormValues = {
 }
 
 export type AssignmentFormProps = {
+  /**
+   * Every subject, including archived ones. The form decides which of them are
+   * actually selectable.
+   */
   subjects: readonly Subject[]
   onSubmit: (values: AssignmentFormValues) => void
   onCancel?: (() => void) | undefined
   className?: string
+  /** Prefill with an existing assignment to switch the form into edit mode. */
+  initialValues?: AssignmentFormValues | undefined
+  /**
+   * Subject the assignment already belongs to. Kept selectable even when
+   * archived, so editing never silently reassigns an assignment.
+   */
+  currentSubjectId?: string | undefined
 }
 
 const EMPTY_VALUES: AssignmentFormValues = {
@@ -45,13 +58,21 @@ export function AssignmentForm({
   onSubmit,
   onCancel,
   className,
+  initialValues,
+  currentSubjectId,
 }: AssignmentFormProps) {
-  const [values, setValues] = useState<AssignmentFormValues>(() => ({
-    ...EMPTY_VALUES,
-    subjectId: defaultSubjectId(subjects),
-  }))
+  const isEditing = initialValues !== undefined
+  const subjectOptions = editableSubjectOptions(subjects, currentSubjectId)
+
+  const [values, setValues] = useState<AssignmentFormValues>(
+    () => initialValues ?? { ...EMPTY_VALUES, subjectId: defaultSubjectId(subjects) },
+  )
   const [errors, setErrors] = useState<AssignmentFormErrors>({})
   const formId = useId()
+
+  const currentSubject = subjectOptions.find((subject) => subject.id === values.subjectId)
+  const keepsArchivedSubject = currentSubject?.archived === true
+  const hasNoSelectableSubject = subjectOptions.length === 0
 
   const update = <K extends keyof AssignmentFormValues>(
     key: K,
@@ -63,10 +84,8 @@ export function AssignmentForm({
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const nextErrors = validateAssignmentForm(
-      values,
-      subjects.map((subject) => subject.id),
-    )
+
+    const nextErrors = validateAssignmentForm(values, subjectOptions, { currentSubjectId })
     setErrors(nextErrors)
 
     if (Object.keys(nextErrors).length > 0) return
@@ -76,103 +95,121 @@ export function AssignmentForm({
       title: values.title.trim(),
       description: values.description.trim(),
     })
-    setValues({ ...EMPTY_VALUES, subjectId: defaultSubjectId(subjects) })
+
+    if (!isEditing) {
+      setValues({ ...EMPTY_VALUES, subjectId: defaultSubjectId(subjects) })
+    }
   }
 
   return (
     <form
       noValidate
       onSubmit={handleSubmit}
-      aria-label="Add assignment"
+      aria-label={isEditing ? 'Edit assignment' : 'Add assignment'}
       className={cn('space-y-4', className)}
     >
-      <Field
-        id={`${formId}-title`}
-        label="Title"
-        error={errors.title}
-        required
-      >
-        <input
+      <Field id={`${formId}-title`} label="Title" error={errors.title} required>
+        <Input
           id={`${formId}-title`}
           name="title"
           type="text"
           value={values.title}
           onChange={(event: ChangeEvent<HTMLInputElement>) => update('title', event.target.value)}
           placeholder="e.g. Problem Set 6"
-          aria-invalid={errors.title ? true : undefined}
-          aria-describedby={errors.title ? `${formId}-title-error` : undefined}
-          className={inputClass(Boolean(errors.title))}
+          invalid={Boolean(errors.title)}
         />
       </Field>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field id={`${formId}-subject`} label="Subject" error={errors.subjectId} required>
-          <select
+        <Field
+          id={`${formId}-subject`}
+          label="Subject"
+          error={errors.subjectId}
+          hint={
+            isEditing
+              ? 'Archived subjects stay only on the assignment that already uses them.'
+              : 'Archived subjects are not listed.'
+          }
+          required
+        >
+          <Select
             id={`${formId}-subject`}
             name="subjectId"
             value={values.subjectId}
             onChange={(event) => update('subjectId', event.target.value)}
-            className={inputClass(Boolean(errors.subjectId))}
+            invalid={Boolean(errors.subjectId)}
           >
             <option value="" disabled>
               Select a subject
             </option>
-            {subjects.map((subject) => (
+            {subjectOptions.map((subject) => (
               <option key={subject.id} value={subject.id}>
                 {subject.code} — {subject.name}
+                {subject.archived ? ' (archived)' : ''}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
 
         <Field id={`${formId}-type`} label="Type">
-          <select
+          <Select
             id={`${formId}-type`}
             name="type"
             value={values.type}
             onChange={(event) => update('type', event.target.value as AssignmentType)}
-            className={inputClass(false)}
           >
             {ASSIGNMENT_TYPES.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
       </div>
 
+      {hasNoSelectableSubject ? (
+        <p className="rounded-lg border border-dashed border-slate-300 bg-slate-50/60 px-3 py-2.5 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-300">
+          No active subjects are available. Create a new subject or restore an
+          archived one on the Subjects page before saving.
+        </p>
+      ) : null}
+
+      {keepsArchivedSubject ? (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+          This assignment is kept on an archived subject. You can save it as is,
+          but you cannot move it to a different archived subject.
+        </p>
+      ) : null}
+
       <div className="grid gap-4 sm:grid-cols-3">
         <Field id={`${formId}-due`} label="Due date" error={errors.dueDate} required>
-          <input
+          <Input
             id={`${formId}-due`}
             name="dueDate"
             type="date"
             value={values.dueDate}
             onChange={(event) => update('dueDate', event.target.value)}
-            aria-invalid={errors.dueDate ? true : undefined}
-            className={inputClass(Boolean(errors.dueDate))}
+            invalid={Boolean(errors.dueDate)}
           />
         </Field>
 
         <Field id={`${formId}-priority`} label="Priority">
-          <select
+          <Select
             id={`${formId}-priority`}
             name="priority"
             value={values.priority}
             onChange={(event) => update('priority', event.target.value as AssignmentPriority)}
-            className={inputClass(false)}
           >
             {PRIORITY_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
 
         <Field id={`${formId}-hours`} label="Est. hours" error={errors.estimatedHours} required>
-          <input
+          <Input
             id={`${formId}-hours`}
             name="estimatedHours"
             type="number"
@@ -181,21 +218,19 @@ export function AssignmentForm({
             step="0.5"
             value={values.estimatedHours}
             onChange={(event) => update('estimatedHours', event.target.value)}
-            aria-invalid={errors.estimatedHours ? true : undefined}
-            className={inputClass(Boolean(errors.estimatedHours))}
+            invalid={Boolean(errors.estimatedHours)}
           />
         </Field>
       </div>
 
       <Field id={`${formId}-description`} label="Description">
-        <textarea
+        <Textarea
           id={`${formId}-description`}
           name="description"
           rows={3}
           value={values.description}
           onChange={(event) => update('description', event.target.value)}
           placeholder="Optional notes about the task"
-          className={inputClass(false)}
         />
       </Field>
 
@@ -205,50 +240,11 @@ export function AssignmentForm({
             Cancel
           </Button>
         ) : null}
-        <Button type="submit" variant="primary">
-          <Icon name="Plus" className="size-4" />
-          Save assignment
+        <Button type="submit" variant="primary" disabled={hasNoSelectableSubject}>
+          <Icon name={isEditing ? 'Check' : 'Plus'} className="size-4" />
+          {isEditing ? 'Save changes' : 'Save assignment'}
         </Button>
       </div>
     </form>
-  )
-}
-
-type FieldProps = {
-  id: string
-  label: string
-  error?: string | undefined
-  required?: boolean
-  children: ReactNode
-}
-
-function Field({ id, label, error, required, children }: FieldProps) {
-  return (
-    <div className="space-y-1.5">
-      <label htmlFor={id} className="block text-xs font-medium text-slate-600 dark:text-slate-300">
-        {label}
-        {required ? (
-          <span className="ml-0.5 text-rose-500" aria-hidden="true">
-            *
-          </span>
-        ) : null}
-      </label>
-      {children}
-      {error ? (
-        <p id={`${id}-error`} className="text-xs text-rose-600 dark:text-rose-400">
-          {error}
-        </p>
-      ) : null}
-    </div>
-  )
-}
-
-function inputClass(hasError: boolean): string {
-  return cn(
-    'h-10 w-full rounded-lg border bg-white px-3 text-sm text-slate-900 shadow-sm transition-colors',
-    'placeholder:text-slate-400 focus:border-brand-500 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500',
-    hasError
-      ? 'border-rose-400 dark:border-rose-500/60'
-      : 'border-slate-300 dark:border-slate-700',
   )
 }

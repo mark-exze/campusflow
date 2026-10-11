@@ -3,8 +3,9 @@ import { Card, CardBody, CardHeader } from '../../components/ui/Card'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { DAY_NAMES } from '../../lib/constants'
-import { formatShortDate, getTodayDateString, getWeekDates, startOfWeek } from '../../lib/date'
+import { formatDateWithPreference, getTodayDateString, getWeekDates, startOfWeek } from '../../lib/date'
 import { formatTimeRange } from '../../lib/utils'
+import { useProfile } from '../../hooks/useProfile'
 import { useAssignments } from '../assignments/store'
 import type { ClassSession, Subject } from '../../types'
 
@@ -12,6 +13,7 @@ type SubjectLookup = (subjectId: string) => Subject | undefined
 
 export function CalendarPage() {
   const { weekSchedule, getSubject } = useAssignments()
+  const { profile } = useProfile()
   const weekDates = getWeekDates(startOfWeek(getTodayDateString()))
   const today = new Date().getDay()
   const weekTotal = weekSchedule.reduce((total, day) => total + day.classes.length, 0)
@@ -19,7 +21,7 @@ export function CalendarPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="This week"
+        eyebrow={`${profile.academicTerm} · ${profile.academicYear}`}
         title="Calendar"
         description="Your weekly class schedule. Assignment deadlines are listed on the assignments page."
       />
@@ -40,7 +42,9 @@ export function CalendarPage() {
             >
               <CardHeader
                 title={dayName}
-                description={weekDate ? formatShortDate(weekDate) : undefined}
+                description={
+                  weekDate ? formatDateWithPreference(weekDate, profile.dateFormat) : undefined
+                }
                 action={day.dayOfWeek === today ? <Badge tone="brand">Today</Badge> : null}
               />
 

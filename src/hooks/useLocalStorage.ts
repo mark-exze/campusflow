@@ -12,7 +12,12 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(key, JSON.stringify(value))
+      const serialized = JSON.stringify(value)
+      // Skip no-op writes. Several hooks can read the same key (for example
+      // subjects from two pages), and rewriting an identical payload would let
+      // a stale instance clobber a newer one.
+      if (window.localStorage.getItem(key) === serialized) return
+      window.localStorage.setItem(key, serialized)
     } catch {
       /* storage unavailable — keep the in-memory value */
     }

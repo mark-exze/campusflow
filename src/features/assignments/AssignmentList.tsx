@@ -8,11 +8,12 @@ export type AssignmentListProps = {
   getSubject: (subjectId: string) => Subject | undefined
   onToggleComplete: (id: string) => void
   onDelete?: ((id: string) => void) | undefined
+  onEdit?: ((assignment: Assignment) => void) | undefined
   emptyTitle?: string | undefined
   emptyDescription?: string | undefined
   emptyIcon?: string | undefined
   className?: string | undefined
-  /** Render a compact list without the delete action. */
+  /** Render a compact list without the row actions. */
   compact?: boolean
 }
 
@@ -21,6 +22,7 @@ export function AssignmentList({
   getSubject,
   onToggleComplete,
   onDelete,
+  onEdit,
   emptyTitle = 'No assignments yet',
   emptyDescription = 'Add an assignment to start tracking deadlines.',
   emptyIcon = 'ClipboardList',
@@ -29,7 +31,12 @@ export function AssignmentList({
 }: AssignmentListProps) {
   if (assignments.length === 0) {
     return (
-      <EmptyState icon={emptyIcon} title={emptyTitle} description={emptyDescription} className={className} />
+      <EmptyState
+        icon={emptyIcon}
+        title={emptyTitle}
+        description={emptyDescription}
+        className={className}
+      />
     )
   }
 
@@ -42,6 +49,7 @@ export function AssignmentList({
             subject={getSubject(assignment.subjectId)}
             onToggleComplete={onToggleComplete}
             onDelete={compact ? undefined : onDelete}
+            onEdit={compact ? undefined : onEdit}
           />
         </li>
       ))}
