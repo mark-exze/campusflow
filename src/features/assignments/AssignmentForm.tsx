@@ -33,7 +33,11 @@ export type AssignmentFormProps = {
    * actually selectable.
    */
   subjects: readonly Subject[]
-  onSubmit: (values: AssignmentFormValues) => void
+  /**
+   * Called after validation passes. Returns false when persistence failed, so
+   * the form keeps the entered values instead of discarding them.
+   */
+  onSubmit: (values: AssignmentFormValues) => boolean
   onCancel?: (() => void) | undefined
   className?: string
   /** Prefill with an existing assignment to switch the form into edit mode. */
@@ -109,14 +113,16 @@ export function AssignmentForm({
 
     if (Object.keys(nextErrors).length > 0) return
 
-    onSubmit({
+    const saved = onSubmit({
       ...values,
       title: values.title.trim(),
       description: values.description.trim(),
       progress: capOpenProgress(values.progress),
     })
 
-    if (!isEditing) {
+    // Only clear the form once the data is actually saved, so a failed write
+    // does not throw away what the student typed.
+    if (saved !== false) {
       setValues({ ...EMPTY_VALUES, subjectId: defaultSubjectId(subjects) })
     }
   }

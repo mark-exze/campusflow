@@ -124,7 +124,8 @@ export function AssignmentsPage() {
 
   const clearFilters = () => setFilters(DEFAULT_FILTERS)
 
-  const handleCreate = (values: AssignmentFormValues) => {
+  /** @returns true when the change was persisted, so the form knows whether to clear. */
+  const handleCreate = (values: AssignmentFormValues): boolean => {
     const result = addAssignment({
       title: values.title,
       subjectId: values.subjectId,
@@ -138,14 +139,23 @@ export function AssignmentsPage() {
 
     if (result.status === 'blocked') {
       setStatus(`Could not save: ${result.reason}`)
-      return
+      return false
+    }
+
+    if (result.status === 'unsaved') {
+      // Never claim success: the write failed. The form keeps its values so
+      // the student can retry without retyping.
+      setStatus(`Not saved — ${result.reason}`)
+      return false
     }
 
     setStatus(`Saved "${values.title}" to this browser.`)
+    return true
   }
 
-  const handleUpdate = (values: AssignmentFormValues) => {
-    if (!editing) return
+  /** @returns true when the change was persisted, so the form knows whether to clear. */
+  const handleUpdate = (values: AssignmentFormValues): boolean => {
+    if (!editing) return false
 
     const result = updateAssignment(editing.id, {
       title: values.title,
@@ -161,11 +171,17 @@ export function AssignmentsPage() {
 
     if (result.status === 'blocked') {
       setStatus(`Could not save: ${result.reason}`)
-      return
+      return false
+    }
+
+    if (result.status === 'unsaved') {
+      setStatus(`Not saved — ${result.reason}`)
+      return false
     }
 
     setStatus(`Updated "${values.title}".`)
     setEditing(null)
+    return true
   }
 
   return (

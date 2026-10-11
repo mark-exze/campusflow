@@ -35,17 +35,22 @@ describe('useSubjects', () => {
   it('adds a subject at the top with a stable id', () => {
     const { result } = renderHook(() => useSubjects())
 
-    let createdId = ''
+    let persisted = false
     act(() => {
-      createdId = result.current.addSubject(NEW_DRAFT).id
+      persisted = result.current.addSubject(NEW_DRAFT)
     })
 
-    const added = result.current.subjects.find((subject) => subject.id === createdId)
+    // Persistence is reported synchronously, so a successful add means the
+    // write landed rather than merely that state changed.
+    expect(persisted).toBe(true)
+
+    const added = result.current.subjects.find(
+      (subject) => subject.name === 'Thermodynamics',
+    )
     expect(added).toBeDefined()
-    expect(added?.name).toBe('Thermodynamics')
     expect(added?.code).toBe('PHY 210')
     expect(added?.archived).toBe(false)
-    expect(createdId).toMatch(/^sub-/)
+    expect(added?.id).toMatch(/^sub-/)
   })
 
   it('gives every subject a distinct id', () => {

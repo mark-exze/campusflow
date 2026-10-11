@@ -38,7 +38,13 @@ export function SettingsPage() {
   const [savedNote, setSavedNote] = useState<string | null>(null)
 
   const handleProfileSubmit = (next: StudentProfile) => {
-    saveProfile(next)
+    const persisted = saveProfile(next)
+
+    if (!persisted) {
+      setSavedNote('Not saved — your browser would not store this change.')
+      return
+    }
+
     setSavedNote('Profile saved to this browser.')
   }
 

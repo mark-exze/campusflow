@@ -69,20 +69,39 @@ export function SubjectsPage() {
 
   const handleCreate = (values: SubjectFormValues) => {
     const draft: SubjectDraft = toSubjectDraft(values)
-    const subject = addSubject(draft)
+    const persisted = addSubject(draft)
+
+    if (!persisted) {
+      // Keep the dialog open so nothing typed is lost.
+      setStatus('Could not save this subject. Your entry is still here — try again.')
+      return
+    }
+
     setIsCreating(false)
-    setStatus(`Added ${subject.name}.`)
+    setStatus(`Added ${values.name}.`)
   }
 
   const handleEdit = (values: SubjectFormValues) => {
     if (!editing) return
-    updateSubject(editing.id, toSubjectDraft(values))
+    const persisted = updateSubject(editing.id, toSubjectDraft(values))
+
+    if (!persisted) {
+      setStatus('Could not save these changes. Your entry is still here — try again.')
+      return
+    }
+
     setStatus(`Saved changes to ${values.name || editing.name}.`)
     setEditing(null)
   }
 
   const handleArchiveToggle = (subject: Subject) => {
-    toggleArchived(subject.id)
+    const persisted = toggleArchived(subject.id)
+
+    if (!persisted) {
+      setStatus(`Could not ${subject.archived ? 'restore' : 'archive'} ${subject.name}.`)
+      return
+    }
+
     setStatus(subject.archived ? `Restored ${subject.name}.` : `Archived ${subject.name}.`)
   }
 
@@ -106,7 +125,10 @@ export function SubjectsPage() {
     const result = deleteSubject(subjects, assignments, deleteTarget.id)
 
     if (result.status === 'deleted') {
-      removeSubject(deleteTarget.id)
+      if (!removeSubject(deleteTarget.id)) {
+        setStatus(`Could not delete ${deleteTarget.name}. It is still here.`)
+        return
+      }
       setStatus(`Deleted ${deleteTarget.name}.`)
     }
     closeDeleteDialog()
@@ -120,7 +142,10 @@ export function SubjectsPage() {
 
     // Remove the subject first, then its dependent assignments, so no
     // assignment is ever left pointing at a missing subject.
-    removeSubject(deleteTarget.id)
+    if (!removeSubject(deleteTarget.id)) {
+      setStatus(`Could not delete ${deleteTarget.name}. It is still here.`)
+      return
+    }
     deleteAssignmentsBySubject(deleteTarget.id)
     setStatus(
       `Deleted ${deleteTarget.name} and its ${deleteTargetTotal} assignment${

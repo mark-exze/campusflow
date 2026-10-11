@@ -12,7 +12,7 @@ import {
   sortAssignmentsBy,
   type AssignmentFilters,
 } from '../lib/assignmentFilters'
-import { addDays, daysUntil, daysUntilFrom, isInCurrentMonth } from '../lib/date'
+import { addDays, daysUntil, daysUntilFrom, getTodayDateString, isInCurrentMonth } from '../lib/date'
 import { getAssignmentProgress, reconcileProgress, validateProgress } from '../lib/assignmentProgress'
 import type { Assignment, AssignmentPriority, AssignmentStatus } from '../types'
 
@@ -357,10 +357,17 @@ describe('filter bookkeeping', () => {
 
 describe('deadline arithmetic', () => {
   it('uses local calendar dates, so UTC offsets cannot shift a day', () => {
-    // Simulates the UTC+8 environment this project is developed in.
-    expect(daysUntil('2026-10-11')).toBe(0)
-    expect(daysUntil('2026-10-12')).toBe(1)
-    expect(daysUntil('2026-10-10')).toBe(-1)
+    // Anchored on the real current date. Every helper in this module is
+    // UTC+8-safe, so a day offset is impossible here; a hardcoded date would
+    // turn into a time bomb the moment the calendar moved on.
+    const today = getTodayDateString()
+
+    expect(daysUntil(today)).toBe(0)
+    expect(daysUntil(addDays(today, 1))).toBe(1)
+    expect(daysUntil(addDays(today, -1))).toBe(-1)
+    // Local components, not toISOString, which would roll back a day.
+    expect(today).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(addDays(today, 1)).not.toBe(today)
   })
 
   it('computes day differences between two explicit dates', () => {

@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom'
 
+import { StorageNotice } from '../ui/StorageNotice'
 import { MobileHeader, MobileNav } from './MobileNav'
 import { Sidebar } from './Sidebar'
 
@@ -25,6 +26,7 @@ export function AppLayout() {
           id="main-content"
           className="mx-auto w-full max-w-6xl px-4 pb-24 pt-5 sm:px-6 lg:pb-10 lg:pt-8"
         >
+          <StorageNotice />
           <Outlet />
         </main>
       </div>

@@ -13,6 +13,7 @@ import { reconcileProgress } from '../../lib/assignmentProgress'
 import { STORAGE_KEYS } from '../../lib/constants'
 import { daysUntil, getTodayDateString, timeToMinutes } from '../../lib/date'
 import { MOCK_ASSIGNMENTS, MOCK_SUBJECTS } from '../../lib/mockData'
+import { isAssignmentArray, isSubjectArray } from '../../lib/storage'
 import { deriveClassSessions, normalizeSubject } from '../../lib/subjects'
 import type {
   Assignment,
@@ -35,17 +36,29 @@ export type NewAssignmentInput = {
 }
 
 /**
- * Result of a create attempt. Creation is refused when the target subject is
- * archived or missing, so no assignment can reference a subject that is not
- * available for new work.
+ * Outcome of a create attempt.
+ *
+ * `created` means localStorage has accepted it. `unsaved` means the change
+ * exists only in this tab — the write failed, so the student must be told
+ * rather than congratulated.
  */
 export type AddAssignmentResult =
   | { status: 'created'; assignment: Assignment }
+  | {
+      status: 'unsaved'
+      assignment: Assignment
+      reason: string
+    }
   | { status: 'blocked'; reason: string }
 
 /** Result of an update attempt, validated at the store layer as well as the UI. */
 export type UpdateAssignmentResult =
   | { status: 'updated'; assignment: Assignment }
+  | {
+      status: 'unsaved'
+      assignment: Assignment
+      reason: string
+    }
   | { status: 'blocked'; reason: string }
 
 const PRIORITY_RANK: Record<AssignmentPriority, number> = {
@@ -96,11 +109,30 @@ export function useAssignments() {
     value: rawAssignments,
     setValue: setAssignments,
     reset: resetAssignments,
-  } = useLocalStorage<Assignment[]>(STORAGE_KEYS.assignments, [...MOCK_ASSIGNMENTS])
+    persist: persistAssignments,
+    readLive: readLiveAssignmentsAll,
+  } = useLocalStorage<Assignment[]>(
+    STORAGE_KEYS.assignments,
+    [...MOCK_ASSIGNMENTS],
+    isAssignmentArray,
+  )
 
-  const { value: storedSubjects } = useLocalStorage<Subject[]>(STORAGE_KEYS.subjects, [
-    ...MOCK_SUBJECTS,
-  ])
+  const { value: storedSubjects } = useLocalStorage<Subject[]>(
+    STORAGE_KEYS.subjects,
+    [...MOCK_SUBJECTS],
+    isSubjectArray,
+  )
+
+  const persist = useCallback(
+    (next: Assignment[]) => persistAssignments(next),
+    [persistAssignments],
+  )
+
+  /** Assignments as currently stored, normalized. */
+  const readLiveAssignments = useCallback(
+    (): Assignment[] => readLiveAssignmentsAll().map((a) => normalizeAssignment(a)),
+    [readLiveAssignmentsAll],
+  )
 
   const assignments: Assignment[] = useMemo(
     () => rawAssignments.map((assignment) => normalizeAssignment(assignment)),
@@ -250,12 +282,22 @@ export function useAssignments() {
         updatedAt: now,
       }
 
-      setAssignments((previous) => [assignment, ...previous])
-      return { status: 'created', assignment }
+      // Compute the next list from the authoritative stored value so a
+      // mutation can never overwrite a newer write with a stale snapshot, then
+      // write it synchronously so the result is honest.
+      const next = [assignment, ...readLiveAssignments()]
+      setAssignments(next)
+      return persist(next)
+        ? { status: 'created', assignment }
+        : {
+            status: 'unsaved',
+            assignment,
+            reason:
+              'Your browser would not store this change, so it is only kept in this tab and will be lost on refresh.',
+          }
     },
-    [readLiveSubjects, setAssignments],
+    [persist, readLiveAssignments, readLiveSubjects, setAssignments],
   )
-
   const updateAssignment = useCallback(
     (id: string, updates: Partial<Omit<Assignment, 'id' | 'createdAt'>>): UpdateAssignmentResult => {
       const existing = rawAssignments.find((assignment) => assignment.id === id)
@@ -295,13 +337,23 @@ export function useAssignments() {
         updatedAt: new Date().toISOString(),
       })
 
-      setAssignments((previous) =>
-        previous.map((assignment) => (assignment.id === id ? updated : assignment)),
+      // Persist synchronously so the caller can report a true outcome rather
+      // assuming the deferred effect will succeed.
+      const next = readLiveAssignments().map((assignment) =>
+        assignment.id === id ? updated : assignment,
       )
+      setAssignments(next)
 
-      return { status: 'updated', assignment: updated }
+      return persist(next)
+        ? { status: 'updated', assignment: updated }
+        : {
+            status: 'unsaved',
+            assignment: updated,
+            reason:
+              'Your browser would not store this change, so it is only kept in this tab and will be lost on refresh.',
+          }
     },
-    [rawAssignments, readLiveSubjects, setAssignments],
+    [persist, rawAssignments, readLiveAssignments, readLiveSubjects, setAssignments],
   )
 
   const setStatus = useCallback(

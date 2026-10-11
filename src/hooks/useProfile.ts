@@ -6,6 +6,7 @@ import {
   createDefaultProfile,
   normalizeProfile,
 } from '../lib/profile'
+import { isProfileObject } from '../lib/storage'
 import type { StudentProfile } from '../types'
 
 export { validateProfile, type ProfileErrors } from '../lib/profile'
@@ -17,25 +18,30 @@ export { validateProfile, type ProfileErrors } from '../lib/profile'
  * outdated record can never produce an incomplete profile in the UI.
  */
 export function useProfile() {
-  const { value, setValue, reset } = useLocalStorage<StudentProfile>(
+  const { value, setValue, reset, persist } = useLocalStorage<StudentProfile>(
     STORAGE_KEYS.profile,
     createDefaultProfile(),
+    isProfileObject,
   )
 
   const profile = useMemo(() => normalizeProfile(value), [value])
 
   const updateProfile = useCallback(
-    (patch: Partial<StudentProfile>) => {
-      setValue((current) => normalizeProfile({ ...normalizeProfile(current), ...patch }))
+    (patch: Partial<StudentProfile>): boolean => {
+      const next = normalizeProfile({ ...normalizeProfile(value), ...patch })
+      setValue(next)
+      return persist(next)
     },
-    [setValue],
+    [persist, setValue, value],
   )
 
   const saveProfile = useCallback(
-    (next: StudentProfile) => {
-      setValue(normalizeProfile(next))
+    (next: StudentProfile): boolean => {
+      const normalized = normalizeProfile(next)
+      setValue(normalized)
+      return persist(normalized)
     },
-    [setValue],
+    [persist, setValue],
   )
 
   const resetProfile = useCallback(() => {
