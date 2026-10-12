@@ -5,7 +5,7 @@ students. CampusFlow AI brings class schedules, assignment deadlines, subjects a
 progress tracking into one place, with light and dark themes and full offline
 support.
 
-> **Project status: Phase 1A — local-first, no backend.** Assignments, subjects and
+> **Project status: local-first preview — no backend.** Assignments, subjects and
 > your profile are stored in this browser only. **There is no AI, no account system
 > and no cloud sync** — the Settings page lists planned features as "Not available
 > yet" so nothing implies a capability that does not exist.
@@ -57,7 +57,7 @@ cd campusflow
 npm install
 ```
 
-No environment variables or configuration files are required to run Phase 1A.
+No environment variables or configuration files are required to run the app.
 
 ## Development
 
@@ -105,11 +105,16 @@ Executed against this workspace (Node 24, npm 11) before the current commit:
 
 ## Screenshots
 
-> Screenshots are pending. Add them under `docs/screenshots/` and reference them here.
->
-> | Light — Dashboard | Dark — Dashboard | Mobile — Dashboard |
-> | --- | --- | --- |
-> | _pending_ | _pending_ | _pending_ |
+![CampusFlow AI dashboard on a desktop screen](docs/screenshots/dashboard-desktop.png)
+
+| Dashboard — mobile | Assignments — mobile | Calendar — mobile |
+| --- | --- | --- |
+| ![CampusFlow AI dashboard on a mobile screen](docs/screenshots/dashboard-mobile.png) | ![Assignment list with search, filters and sorting on a mobile screen](docs/screenshots/assignments-mobile.png) | ![Weekly class calendar in month view on a mobile screen](docs/screenshots/calendar-mobile.png) |
+
+The screenshots above show the **light theme** with the built-in demonstration
+data. CampusFlow AI also ships a full **dark theme**, selected from the theme
+toggle in the header or from Settings → Appearance. No dark-theme screenshots
+are included, so the appearance is best judged live.
 
 ## Data storage and privacy
 

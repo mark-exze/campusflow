@@ -32,7 +32,14 @@ export function PageHeader({
           <p className="max-w-2xl text-sm text-slate-500 dark:text-slate-400">{description}</p>
         ) : null}
       </div>
-      {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+      {actions ? (
+        // Stack actions on narrow screens so a wide row cannot push the last
+        // action past the container and clip its label; wrap into a row from
+        // the small breakpoint up.
+        <div className="flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          {actions}
+        </div>
+      ) : null}
     </header>
   )
 }
