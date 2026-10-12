@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Guidance for AI agents and human contributors working on CampusFlow AI. Read
+Guidance for AI agents and human contributors working on CampusFlow. Read
 this before changing code.
 
 ## Project status

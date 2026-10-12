@@ -1,5 +1,5 @@
 /**
- * Shared type definitions for CampusFlow AI (Phase 1).
+ * Shared type definitions for CampusFlow.
  * These are intentionally simple and local — they will evolve with the backend.
  */
 

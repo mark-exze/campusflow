@@ -4,7 +4,7 @@
 
 import type { DateFormatPreference, SchoolLevel } from '../types'
 
-export const APP_NAME = 'CampusFlow AI' as const
+export const APP_NAME = 'CampusFlow' as const
 
 export const STORAGE_KEYS = {
   assignments: 'campusflow.assignments.v1',

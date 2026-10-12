@@ -1,7 +1,7 @@
-# CampusFlow AI
+# CampusFlow
 
 A mobile-first academic productivity platform for university, college and high school
-students. CampusFlow AI brings class schedules, assignment deadlines, subjects and
+students. CampusFlow brings class schedules, assignment deadlines, subjects and
 progress tracking into one place, with light and dark themes and full offline
 support.
 
@@ -105,20 +105,20 @@ Executed against this workspace (Node 24, npm 11) before the current commit:
 
 ## Screenshots
 
-![CampusFlow AI dashboard on a desktop screen](docs/screenshots/dashboard-desktop.png)
+![CampusFlow dashboard on a desktop screen](docs/screenshots/dashboard-desktop.png)
 
 | Dashboard — mobile | Assignments — mobile | Calendar — mobile |
 | --- | --- | --- |
-| ![CampusFlow AI dashboard on a mobile screen](docs/screenshots/dashboard-mobile.png) | ![Assignment list with search, filters and sorting on a mobile screen](docs/screenshots/assignments-mobile.png) | ![Weekly class calendar in month view on a mobile screen](docs/screenshots/calendar-mobile.png) |
+| ![CampusFlow dashboard on a mobile screen](docs/screenshots/dashboard-mobile.png) | ![Assignment list with search, filters and sorting on a mobile screen](docs/screenshots/assignments-mobile.png) | ![Weekly class calendar in month view on a mobile screen](docs/screenshots/calendar-mobile.png) |
 
 The screenshots above show the **light theme** with the built-in demonstration
-data. CampusFlow AI also ships a full **dark theme**, selected from the theme
+data. CampusFlow also ships a full **dark theme**, selected from the theme
 toggle in the header or from Settings → Appearance. No dark-theme screenshots
 are included, so the appearance is best judged live.
 
 ## Data storage and privacy
 
-CampusFlow AI is **local-first**. There is no server, no analytics and no account.
+CampusFlow is **local-first**. There is no server, no analytics and no account.
 
 | Dataset | localStorage key |
 | --- | --- |
