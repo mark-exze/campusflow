@@ -52,7 +52,7 @@ support.
 ## Installation
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/campusflow.git
+git clone https://github.com/mark-exze/campusflow.git
 cd campusflow
 npm install
 ```
