@@ -44,9 +44,7 @@ export function useProfile() {
     [persist, setValue],
   )
 
-  const resetProfile = useCallback(() => {
-    reset()
-  }, [reset])
+  const resetProfile = useCallback((): boolean => reset(), [reset])
 
   return { profile, updateProfile, saveProfile, resetProfile }
 }

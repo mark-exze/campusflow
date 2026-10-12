@@ -1,4 +1,4 @@
-import { screen, within, waitFor } from '@testing-library/react'
+import { act, renderHook, screen, within, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 
@@ -10,6 +10,14 @@ import { validateAssignmentForm } from '../features/assignments/validation'
 import { SettingsPage } from '../features/settings/page'
 import { SubjectsPage } from '../features/subjects/page'
 import { MOCK_SUBJECTS } from '../lib/mockData'
+import { STORAGE_KEYS } from '../lib/constants'
+import { useAssignments } from '../features/assignments/store'
+import { useSubjects } from '../features/subjects/store'
+import type { Assignment, Subject } from '../types'
+
+function readStored<T>(key: string): T {
+  return JSON.parse(window.localStorage.getItem(key)!) as T
+}
 
 describe('DashboardPage', () => {
   it('renders every dashboard section', () => {
@@ -462,5 +470,252 @@ describe('SettingsPage profile', () => {
     expect(await screen.findByText(/Use a year such as/i)).toBeInTheDocument()
     // Nothing invalid is persisted.
     expect(window.localStorage.getItem('campusflow.profile.v1')).not.toContain('twenty')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Reset actions require confirmation
+// ---------------------------------------------------------------------------
+
+describe('reset actions require confirmation', () => {
+  it('asks before replacing the student subjects with sample data', async () => {
+    const user = userEvent.setup()
+    renderWithRouter(<SubjectsPage />)
+
+    const before = readStored<Subject[]>(STORAGE_KEYS.subjects).length
+
+    await user.click(screen.getByRole('button', { name: /restore sample subjects/i }))
+    const dialog = await screen.findByRole('dialog')
+
+    expect(dialog).toHaveAccessibleName(/restore sample subjects/i)
+    expect(within(dialog).getByText(/replaces every subject/i)).toBeInTheDocument()
+
+    // Cancelling leaves the stored data untouched.
+    await user.click(within(dialog).getByRole('button', { name: /^cancel$/i }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(readStored<Subject[]>(STORAGE_KEYS.subjects)).toHaveLength(before)
+
+    // Confirming performs the reset.
+    await user.click(screen.getByRole('button', { name: /restore sample subjects/i }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: /restore sample subjects/i }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(readStored<Subject[]>(STORAGE_KEYS.subjects)).toHaveLength(MOCK_SUBJECTS.length)
+  })
+
+  it('asks before replacing assignments with sample data', async () => {
+    const user = userEvent.setup()
+    renderWithRouter(<SettingsPage />)
+
+    await user.click(screen.getByRole('button', { name: /restore sample assignments/i }))
+    const dialog = await screen.findByRole('dialog')
+
+    // Cancelling is the safe default and the dialog closes with no change.
+    await user.click(within(dialog).getByRole('button', { name: /^cancel$/i }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Subject reset integrity
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Subject reset integrity — the reset must never orphan assignments
+// ---------------------------------------------------------------------------
+
+/** Create a student-owned subject with an assignment attached to it. */
+function seedStudentSubjectWithAssignment(): { subjectId: string; unmount: () => void } {
+  const { result, unmount } = renderHook(() => ({
+    subjects: useSubjects(),
+    assignments: useAssignments(),
+  }))
+
+  act(() => {
+    result.current.subjects.addSubject({
+      name: 'My Own Course',
+      code: 'ABC 100',
+      instructor: '',
+      color: 'bg-sky-500',
+      credits: 3,
+      grade: 70,
+      location: '',
+      schedule: [{ dayOfWeek: 1, startTime: '09:00', endTime: '10:00' }],
+    })
+  })
+  
+  // Read the id only after the update has been committed.
+  const subjectId =
+    result.current.subjects.subjects.find((subject) => subject.name === 'My Own Course')?.id ?? ''
+  act(() => {
+    result.current.assignments.addAssignment({
+      title: 'On my own course',
+      subjectId,
+      type: 'homework',
+      priority: 'medium',
+      dueDate: '2026-12-01',
+      estimatedHours: 1,
+      description: '',
+      progress: 0,
+    })
+  })
+
+  return { subjectId, unmount }
+}
+
+describe('subject reset integrity', () => {
+  it('BLOCKS the reset when an assignment would become orphaned', async () => {
+    const user = userEvent.setup()
+    const { subjectId, unmount } = seedStudentSubjectWithAssignment()
+    unmount()
+
+    expect(subjectId).toBeTruthy()
+
+    renderWithRouter(<SubjectsPage />)
+    await user.click(screen.getByRole('button', { name: /restore sample subjects/i }))
+
+    const dialog = await screen.findByRole('dialog')
+
+    // The dialog is explicit that the reset cannot proceed, and why.
+    expect(dialog).toHaveAccessibleDescription(
+      'Blocked — 1 assignment still references your subjects.',
+    )
+    expect(within(dialog).getByText(/Reassign or remove this assignment/i)).toBeInTheDocument()
+
+    // No destructive action is offered — only a route to the assignment.
+    expect(
+      within(dialog).queryByRole('button', { name: /^restore sample subjects$/i }),
+    ).not.toBeInTheDocument()
+    expect(within(dialog).getByRole('link', { name: /go to assignments/i })).toHaveAttribute(
+      'href',
+      '/assignments',
+    )
+    expect(within(dialog).getByRole('button', { name: /^cancel$/i })).toBeInTheDocument()
+  })
+
+  it('leaves subjects and assignments unchanged when the reset is blocked', async () => {
+    const user = userEvent.setup()
+    const { subjectId, unmount } = seedStudentSubjectWithAssignment()
+    unmount()
+
+    const subjectsBefore = readStored<Subject[]>(STORAGE_KEYS.subjects)
+    const assignmentsBefore = readStored<Assignment[]>(STORAGE_KEYS.assignments)
+
+    renderWithRouter(<SubjectsPage />)
+    await user.click(screen.getByRole('button', { name: /restore sample subjects/i }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: /^cancel$/i }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+    // Nothing was deleted, rewritten or reordered.
+    expect(readStored<Subject[]>(STORAGE_KEYS.subjects)).toEqual(subjectsBefore)
+    expect(readStored<Assignment[]>(STORAGE_KEYS.assignments)).toEqual(assignmentsBefore)
+
+    // The student's subject and the assignment on it are both still there.
+    const subjects = readStored<Subject[]>(STORAGE_KEYS.subjects)
+    expect(subjects.some((subject) => subject.id === subjectId)).toBe(true)
+    const assignments = readStored<Assignment[]>(STORAGE_KEYS.assignments)
+    expect(assignments.some((assignment) => assignment.subjectId === subjectId)).toBe(true)
+  })
+
+  it('still blocks after the page was mounted BEFORE the at-risk assignment existed', async () => {
+    const user = userEvent.setup()
+
+    // The guard must read current storage at confirm time, not the render snapshot.
+    const { unmount } = renderHook(() => ({
+      subjects: useSubjects(),
+      assignments: useAssignments(),
+    }))
+    unmount()
+
+    renderWithRouter(<SubjectsPage />)
+
+    // Only sample subjects exist when the page mounts, so the dialog looks safe.
+    await user.click(screen.getByRole('button', { name: /restore sample subjects/i }))
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog).toHaveAccessibleDescription('This replaces every subject you have.')
+    await user.click(within(dialog).getByRole('button', { name: /^cancel$/i }))
+
+    // Now an assignment is created on a new subject, out from under the page.
+    const { subjectId, unmount: unmount2 } = seedStudentSubjectWithAssignment()
+    unmount2()
+    expect(subjectId).toBeTruthy()
+
+    // Re-opening the dialog must now show the block, not a stale "safe" state.
+    await user.click(screen.getByRole('button', { name: /restore sample subjects/i }))
+    expect(
+      await screen.findByText(/Reassign or remove this assignment/i),
+    ).toBeInTheDocument()
+  })
+
+  it('succeeds when no assignment points at a student subject', async () => {
+    const user = userEvent.setup()
+    const { unmount } = renderHook(() => ({
+      subjects: useSubjects(),
+      assignments: useAssignments(),
+    }))
+    unmount()
+
+    renderWithRouter(<SubjectsPage />)
+    await user.click(screen.getByRole('button', { name: /restore sample subjects/i }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog).toHaveAccessibleDescription('This replaces every subject you have.')
+
+    // The safe reset goes ahead and restores exactly the six samples.
+    await user.click(within(dialog).getByRole('button', { name: /^restore sample subjects$/i }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+    expect(await screen.findByText('Sample subjects restored.')).toBeInTheDocument()
+    const subjects = readStored<Subject[]>(STORAGE_KEYS.subjects)
+    expect(subjects.map((subject) => subject.id).sort()).toEqual(
+      [...MOCK_SUBJECTS.map((subject) => subject.id)].sort(),
+    )
+  })
+
+    const user = userEvent.setup()
+  it('blocks the reset from Settings too, consistently', async () => {
+    const { subjectId, unmount } = seedStudentSubjectWithAssignment()
+    unmount()
+    expect(subjectId).toBeTruthy()
+
+    renderWithRouter(<SettingsPage />)
+    await user.click(screen.getByRole('button', { name: /restore sample subjects/i }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog).toHaveAccessibleDescription(
+      'Blocked — 1 assignment still references your subjects.',
+    )
+    expect(
+      within(dialog).queryByRole('button', { name: /^restore sample data$/i }),
+    ).not.toBeInTheDocument()
+    expect(within(dialog).getByRole('link', { name: /go to assignments/i })).toBeInTheDocument()
+  })
+
+  it('reports a failure honestly when persistence fails', async () => {
+    const user = userEvent.setup()
+    const { unmount } = renderHook(() => ({
+      subjects: useSubjects(),
+      assignments: useAssignments(),
+    }))
+    unmount()
+
+    const before = window.localStorage.getItem(STORAGE_KEYS.subjects)
+    const original = Storage.prototype.setItem
+    Storage.prototype.setItem = () => {
+      throw new Error('QuotaExceededError')
+    }
+
+    renderWithRouter(<SubjectsPage />)
+    await user.click(screen.getByRole('button', { name: /restore sample subjects/i }))
+    await user.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: /^restore sample subjects$/i,
+      }),
+    )
+
+    // No false success — the student is told it did not save.
+    expect(await screen.findByText(/Could not restore/i)).toBeInTheDocument()
+
+    Storage.prototype.setItem = original
+    expect(window.localStorage.getItem(STORAGE_KEYS.subjects)).toBe(before)
   })
 })

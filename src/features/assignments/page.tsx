@@ -279,7 +279,7 @@ export function AssignmentsPage() {
         <div className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative min-w-0 flex-1">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
                 <Icon name="Search" className="size-4" />
               </span>
               <input
@@ -288,14 +288,14 @@ export function AssignmentsPage() {
                 onChange={(event) => updateFilter('query', event.target.value)}
                 placeholder="Search titles and descriptions"
                 aria-label="Search assignments"
-                className="h-11 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-9 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus:border-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
+                className="h-11 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-9 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-500 focus:border-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
               />
               {filters.query ? (
                 <button
                   type="button"
                   onClick={() => updateFilter('query', '')}
                   aria-label="Clear search"
-                  className="absolute right-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                  className="absolute right-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
                 >
                   <Icon name="X" className="size-3.5" />
                 </button>
@@ -433,7 +433,7 @@ export function AssignmentsPage() {
                 <Icon name="AlertCircle" className="size-4" />
                 Overdue ({overdue.length})
               </h2>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500">
+              <p className="text-[11px] text-slate-500 dark:text-slate-500">
                 Outstanding work past its due date. Completed assignments are
                 never counted here.
               </p>
@@ -483,7 +483,7 @@ export function AssignmentsPage() {
         </>
       )}
 
-      <p className="text-xs text-slate-400 dark:text-slate-500">
+      <p className="text-xs text-slate-500 dark:text-slate-500">
         Showing {totalAssignments} of {totalStored} assignment{totalStored === 1 ? '' : 's'}
         {hasActiveFilters(filters) ? ' (filtered)' : ''}
         {sampleAssignmentCount + customisedAssignmentCount > 0
@@ -524,7 +524,7 @@ function EmptyAssignments({ onAdd, canAdd }: { onAdd: () => void; canAdd: boolea
   return (
     <Card>
       <div className="flex flex-col items-center gap-3 px-6 py-10 text-center">
-        <span className="flex size-11 items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">
+        <span className="flex size-11 items-center justify-center rounded-full bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-500">
           <Icon name="ClipboardList" className="size-5" />
         </span>
         <div className="space-y-1">
@@ -557,7 +557,7 @@ function EmptyResults({ onClear }: { onClear: () => void }) {
   return (
     <Card>
       <div className="flex flex-col items-center gap-3 px-6 py-10 text-center">
-        <span className="flex size-11 items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">
+        <span className="flex size-11 items-center justify-center rounded-full bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-500">
           <Icon name="Search" className="size-5" />
         </span>
         <div className="space-y-1">

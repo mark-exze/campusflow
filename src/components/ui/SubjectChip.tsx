@@ -11,7 +11,7 @@ export type SubjectChipProps = {
 export function SubjectChip({ subject, className, variant = 'code' }: SubjectChipProps) {
   if (!subject) {
     return (
-      <span className={cn('text-xs text-slate-400 italic', className)}>No subject</span>
+      <span className={cn('text-xs text-slate-500 italic', className)}>No subject</span>
     )
   }
 

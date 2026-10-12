@@ -71,7 +71,7 @@ export function DashboardStats({ stats }: DashboardStatsProps) {
       </div>
 
       {stats.archivedSubjects > 0 ? (
-        <p className="text-[11px] text-slate-400 dark:text-slate-500">
+        <p className="text-[11px] text-slate-500 dark:text-slate-500">
           {stats.archivedSubjects} archived subject
           {stats.archivedSubjects === 1 ? '' : 's'} kept out of the active count.
         </p>
@@ -93,7 +93,7 @@ export function DashboardStats({ stats }: DashboardStatsProps) {
             label="Average progress across open assignments"
             className="mt-2"
           />
-          <p className="mt-1.5 text-[11px] text-slate-400 dark:text-slate-500">
+          <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-500">
             {stats.active === 0
               ? 'No open assignments to average.'
               : `Average across ${stats.active} open assignment${stats.active === 1 ? '' : 's'}`}

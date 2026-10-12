@@ -24,7 +24,7 @@ export function EmptyState({
         className,
       )}
     >
-      <span className="flex size-11 items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">
+      <span className="flex size-11 items-center justify-center rounded-full bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-500">
         <Icon name={icon} className="size-5" />
       </span>
       <div className="space-y-1">

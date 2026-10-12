@@ -409,9 +409,7 @@ export function useAssignments() {
     [setAssignments],
   )
 
-  const resetToSampleData = useCallback(() => {
-    resetAssignments()
-  }, [resetAssignments])
+  const resetToSampleData = useCallback((): boolean => resetAssignments(), [resetAssignments])
 
   /** Apply the given filters and sort, against the full assignment list. */
   const getVisibleAssignments = useCallback(

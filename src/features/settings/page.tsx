@@ -2,8 +2,10 @@ import { useState } from 'react'
 
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
+import { ButtonLink } from '../../components/ui/ButtonLink'
 import { Card, CardBody, CardHeader } from '../../components/ui/Card'
 import { PageHeader } from '../../components/ui/PageHeader'
+import { Modal } from '../../components/ui/Modal'
 import { ThemeToggle } from '../../components/ui/ThemeToggle'
 import { Icon } from '../../components/ui/Icon'
 import { useTheme } from '../../hooks/useTheme'
@@ -33,9 +35,21 @@ export function SettingsPage() {
   const { theme, setTheme, resolvedTheme } = useTheme()
   const { profile, saveProfile, resetProfile } = useProfile()
   const { assignments, resetToSampleData } = useAssignments()
-  const { subjects, resetSubjects } = useSubjects()
+  const { subjects, restoreSampleSubjects, getSubjectResetRisk } = useSubjects()
 
   const [savedNote, setSavedNote] = useState<string | null>(null)
+  const [resetTarget, setResetTarget] = useState<'assignments' | 'subjects' | null>(null)
+
+  /**
+   * Re-read on each dialog open so the confirmation reflects the current
+   * stored data rather than a potentially stale render snapshot.
+   */
+  const [subjectResetRisk, setSubjectResetRisk] = useState(0)
+
+  const openSubjectsReset = () => {
+    setSubjectResetRisk(getSubjectResetRisk())
+    setResetTarget('subjects')
+  }
 
   const handleProfileSubmit = (next: StudentProfile) => {
     const persisted = saveProfile(next)
@@ -95,6 +109,7 @@ export function SettingsPage() {
                   type="button"
                   role="radio"
                   aria-checked={isActive}
+                  aria-label={option.label}
                   onClick={() => setTheme(option.value)}
                   className={
                     isActive
@@ -133,22 +148,105 @@ export function SettingsPage() {
           </dl>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={() => resetToSampleData()}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setResetTarget('assignments')}
+            >
               <Icon name="RotateCcw" className="size-4" />
               Restore sample assignments
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => resetSubjects()}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={openSubjectsReset}
+            >
               <Icon name="RotateCcw" className="size-4" />
               Restore sample subjects
             </Button>
           </div>
 
-          <p className="text-xs text-slate-400 dark:text-slate-500">
+          <p className="text-xs text-slate-500 dark:text-slate-500">
             Sample data is only restored when you press a restore button — it is
             never re-created automatically after you delete something.
           </p>
         </CardBody>
       </Card>
+
+      {/* Restore confirmation */}
+      <Modal
+        open={resetTarget !== null}
+        onClose={() => setResetTarget(null)}
+        size="sm"
+        title={
+          resetTarget === 'subjects'
+            ? 'Restore sample subjects?'
+            : 'Restore sample assignments?'
+        }
+        description={
+          resetTarget === 'subjects' && subjectResetRisk > 0
+            ? `Blocked — ${subjectResetRisk} assignment${subjectResetRisk === 1 ? '' : 's'} still ${subjectResetRisk === 1 ? 'references' : 'reference'} your subjects.`
+            : 'This replaces every record you have.'
+        }
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setResetTarget(null)}>
+              Cancel
+            </Button>
+
+            {resetTarget === 'subjects' && subjectResetRisk > 0 ? (
+              <ButtonLink to="/assignments" variant="primary">
+                <Icon name="ClipboardList" className="size-4" />
+                Go to assignments
+              </ButtonLink>
+            ) : (
+              <Button
+                variant="danger"
+                onClick={() => {
+                  const target = resetTarget
+                  setResetTarget(null)
+
+                  if (target === 'subjects') {
+                    // The store re-checks the live stored data before writing.
+                    const outcome = restoreSampleSubjects()
+                    if (outcome.status === 'blocked') return
+                    if (outcome.status === 'failed') {
+                      setSavedNote('Could not restore the sample subjects.')
+                      return
+                    }
+                    setSavedNote('Sample subjects restored.')
+                    return
+                  }
+
+                  if (resetToSampleData()) setSavedNote('Sample assignments restored.')
+                }}
+              >
+                <Icon name="RotateCcw" className="size-4" />
+                Restore sample data
+              </Button>
+            )}
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            {resetTarget === 'subjects'
+              ? 'Your subjects will be replaced by the six demonstration subjects that ship with the app. Your assignments are never deleted or changed by this action.'
+              : 'Your own assignments will be replaced by the demonstration set that ships with the app.'}
+          </p>
+
+          {resetTarget === 'subjects' && subjectResetRisk > 0 ? (
+            <p className="rounded-lg bg-rose-50 px-3 py-2.5 text-xs text-rose-800 dark:bg-rose-500/10 dark:text-rose-300">
+              <span className="font-semibold">
+                {subjectResetRisk} assignment{subjectResetRisk === 1 ? '' : 's'}
+              </span>{' '}
+              {subjectResetRisk === 1 ? 'points' : 'point'} at a subject you created, so the reset
+              is blocked. Reassign or remove {subjectResetRisk === 1 ? 'this assignment' : 'these assignments'} on
+              the Assignments page, then restore the sample subjects here.
+            </p>
+          ) : null}
+        </div>
+      </Modal>
 
       <Card>
         <CardHeader

@@ -43,9 +43,7 @@ export function useOnboarding() {
     )
   }, [setValue])
 
-  const resetOnboarding = useCallback(() => {
-    reset()
-  }, [reset])
+  const resetOnboarding = useCallback((): boolean => reset(), [reset])
 
   return {
     ...value,

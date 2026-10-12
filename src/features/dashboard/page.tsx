@@ -121,7 +121,7 @@ export function DashboardPage() {
 
       <QuickActions />
 
-      <footer className="pt-2 text-center text-xs text-slate-400 dark:text-slate-500">
+      <footer className="pt-2 text-center text-xs text-slate-500 dark:text-slate-500">
         <p>
           Grades, AI planning and cloud sync are{' '}
           <Link

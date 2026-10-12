@@ -172,9 +172,13 @@ export function useLocalStorage<T>(
     if (hadReadError) reportFailure(key, new StorageReadError(key))
   }, [hadReadError, key])
 
-  const reset = useCallback(() => {
-    setState({ value: initialValue, hadReadError: false })
-  }, [initialValue])
+  const reset = useCallback((): boolean => {
+    // Reset restores the seeded sample data, so it must also report whether
+    // the replacement actually landed.
+    const next = initialValue
+    setState({ value: next, hadReadError: false })
+    return persist(next)
+  }, [persist, initialValue])
 
   return { value, setValue, reset, persist, readLive }
 }

@@ -171,7 +171,7 @@ export function ProfileForm({ profile, onSubmit, onReset, className }: ProfileFo
             {schoolLevelLabel(values.schoolLevel)} ·{' '}
             {dateFormatLabel(values.dateFormat)}
           </p>
-          <p className="mt-2 break-all text-slate-400 dark:text-slate-500">{STORAGE_KEYS.profile}</p>
+          <p className="mt-2 break-all text-slate-500 dark:text-slate-500">{STORAGE_KEYS.profile}</p>
         </div>
       </div>
 

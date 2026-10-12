@@ -17,6 +17,7 @@ import {
 } from '../../lib/subjects'
 import { useAssignments } from '../assignments/store'
 import { useProfile } from '../../hooks/useProfile'
+import { ROUTES } from '../../lib/constants'
 import { summarizeRecords } from '../../lib/seedData'
 import { useSubjects } from './store'
 import { SubjectCard } from './SubjectCard'
@@ -31,7 +32,8 @@ export function SubjectsPage() {
     updateSubject,
     toggleArchived,
     removeSubject,
-    resetSubjects,
+    restoreSampleSubjects,
+    getSubjectResetRisk,
   } = useSubjects()
   const { assignments, deleteAssignmentsBySubject } = useAssignments()
   const { profile } = useProfile()
@@ -40,6 +42,24 @@ export function SubjectsPage() {
   const [isCreating, setIsCreating] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Subject | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [resetDialogOpen, setResetDialogOpen] = useState(false)
+
+  /**
+   * Re-read the live risk each time the dialog opens, so the confirmation
+   * reflects the current stored data rather than a stale render snapshot.
+   */
+  const openResetDialog = () => {
+    setResetRiskCount(getSubjectResetRisk())
+    setResetDialogOpen(true)
+  }
+
+  /**
+   * Assignments that point at a subject which will NOT exist after the reset.
+   * The reset restores exactly the seeded ids, so anything on a student-created
+   * subject would be left pointing at a deleted id. Reporting the exact count
+   * is what keeps the reset from being silently destructive.
+   */
+  const [resetRiskCount, setResetRiskCount] = useState(0)
   const [showArchived, setShowArchived] = useState(true)
   const [statusMessage, setStatus] = useState<string | null>(null)
 
@@ -241,7 +261,7 @@ export function SubjectsPage() {
       )}
 
       {recordSummary.sampleSubjects + recordSummary.customisedSubjects > 0 ? (
-        <p className="text-[11px] text-slate-400 dark:text-slate-500">
+        <p className="text-[11px] text-slate-500 dark:text-slate-500">
           {recordSummary.sampleSubjects + recordSummary.customisedSubjects} of {subjects.length}{' '}
           subject{subjects.length === 1 ? '' : 's'} started as sample data —{' '}
           {recordSummary.sampleSubjects} untouched
@@ -252,7 +272,7 @@ export function SubjectsPage() {
           .
         </p>
       ) : (
-        <p className="text-[11px] text-slate-400 dark:text-slate-500">
+        <p className="text-[11px] text-slate-500 dark:text-slate-500">
           Every subject here was added by you.
         </p>
       )}
@@ -268,12 +288,84 @@ export function SubjectsPage() {
               with custom category weights arrives in a later phase.
             </p>
           </div>
-          <Button variant="secondary" size="sm" onClick={() => resetSubjects()}>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={openResetDialog}
+          >
             <Icon name="RotateCcw" className="size-4" />
             Restore sample subjects
           </Button>
         </div>
       </Card>
+
+      {/* Restore sample data confirmation */}
+      <Modal
+        open={resetDialogOpen}
+        onClose={() => setResetDialogOpen(false)}
+        size="sm"
+        title="Restore sample subjects?"
+        description={
+          resetRiskCount > 0
+            ? `Blocked — ${resetRiskCount} assignment${resetRiskCount === 1 ? '' : 's'} still ${resetRiskCount === 1 ? 'references' : 'reference'} your subjects.`
+            : 'This replaces every subject you have.'
+        }
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setResetDialogOpen(false)}>
+              Cancel
+            </Button>
+
+            {resetRiskCount > 0 ? (
+              <ButtonLink to={ROUTES.assignments} variant="primary">
+                <Icon name="ClipboardList" className="size-4" />
+                Go to assignments
+              </ButtonLink>
+            ) : (
+              <Button
+                variant="danger"
+                onClick={() => {
+                  // The store re-checks the live stored data before writing, so
+                  // a stale dialog can never orphan real assignments.
+                  const outcome = restoreSampleSubjects()
+                  if (outcome.status === 'blocked') return
+                  if (outcome.status === 'failed') {
+                    setStatus('Could not restore the sample subjects.')
+                    return
+                  }
+                  setResetDialogOpen(false)
+                  setStatus('Sample subjects restored.')
+                }}
+              >
+                <Icon name="RotateCcw" className="size-4" />
+                Restore sample subjects
+              </Button>
+            )}
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            Your subjects will be replaced by the six demonstration subjects
+            that ship with the app, including any you created or archived.
+            Your assignments are never deleted or changed by this action.
+          </p>
+
+          {resetRiskCount > 0 ? (
+            <p className="rounded-lg bg-rose-50 px-3 py-2.5 text-xs text-rose-800 dark:bg-rose-500/10 dark:text-rose-300">
+              <span className="font-semibold">
+                {resetRiskCount} assignment{resetRiskCount === 1 ? '' : 's'}
+              </span>{' '}
+              {resetRiskCount === 1 ? 'points' : 'point'} at a subject you created, and{' '}
+              {resetRiskCount === 1 ? 'would lose that subject' : 'would lose their subjects'} if
+              the list is reset. Reassign or remove{' '}
+              {resetRiskCount === 1 ? 'this assignment' : 'these assignments'} on the Assignments
+              page, then restore the sample subjects here.
+            </p>
+          ) : null}
+        </div>
+      </Modal>
+
 
       {/* Create */}
       <Modal

@@ -1,11 +1,12 @@
-import { useId } from 'react'
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react'
+import { cloneElement, isValidElement, useId } from 'react'
+import type { ReactElement, ReactNode } from 'react'
+import type { InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react'
 
 import { cn } from '../../lib/utils'
 import { Icon } from './Icon'
 
 export const controlBase =
-  'h-10 w-full rounded-lg border bg-white px-3 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus:border-brand-500 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500'
+  'h-10 w-full rounded-lg border bg-white px-3 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-500 focus:border-brand-500 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500'
 
 function controlClass(invalid: boolean, className?: string): string {
   return cn(
@@ -30,6 +31,10 @@ export function Field({ id, label, error, hint, required, children, className }:
   const errorId = `${id}-error`
   const hintId = `${id}-hint`
 
+  // The control must reference whichever message is currently shown, so a
+  // screen reader announces the problem when the field receives focus.
+  const describedBy = error ? errorId : hint ? hintId : undefined
+
   return (
     <div className={cn('space-y-1.5', className)}>
       <label
@@ -44,10 +49,10 @@ export function Field({ id, label, error, hint, required, children, className }:
         ) : null}
       </label>
 
-      {children}
+      {withDescribedBy(children, describedBy)}
 
       {hint && !error ? (
-        <p id={hintId} className="text-xs text-slate-400 dark:text-slate-500">
+        <p id={hintId} className="text-xs text-slate-500 dark:text-slate-500">
           {hint}
         </p>
       ) : null}
@@ -61,12 +66,26 @@ export function Field({ id, label, error, hint, required, children, className }:
   )
 }
 
+/** Attach `aria-describedby` to the field's control element. */
+function withDescribedBy(children: ReactNode, describedBy: string | undefined): ReactNode {
+  if (!describedBy || !isValidElement(children)) return children
+  return cloneElement(children as ReactElement<{ 'aria-describedby'?: string }>, {
+    'aria-describedby': describedBy,
+  })
+}
+
 export type InputProps = InputHTMLAttributes<HTMLInputElement> & {
   invalid?: boolean
 }
 
 export function Input({ invalid = false, className, ...props }: InputProps) {
-  return <input className={controlClass(invalid, className)} {...props} />
+  return (
+    <input
+      aria-invalid={invalid ? true : undefined}
+      className={controlClass(invalid, className)}
+      {...props}
+    />
+  )
 }
 
 export type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & {

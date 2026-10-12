@@ -49,7 +49,7 @@ function ClassRow({ session, getSubject }: { session: ClassSession; getSubject: 
           <span
             className={
               past
-                ? 'text-sm font-medium text-slate-400 dark:text-slate-500'
+                ? 'text-sm font-medium text-slate-500 dark:text-slate-500'
                 : 'text-sm font-semibold text-slate-900 dark:text-slate-100'
             }
           >

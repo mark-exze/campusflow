@@ -291,7 +291,7 @@ function MonthView({
                   'mb-1 flex h-6 w-full items-center justify-center rounded-md text-xs font-semibold tabular-nums transition-colors hover:bg-slate-100 dark:hover:bg-slate-800',
                   cell.isCurrentMonth
                     ? 'text-slate-700 dark:text-slate-200'
-                    : 'text-slate-400 dark:text-slate-500',
+                    : 'text-slate-500 dark:text-slate-500',
                   cell.isToday &&
                     'bg-brand-600 text-white hover:bg-brand-700 dark:hover:bg-brand-500',
                 )}
@@ -320,7 +320,7 @@ function MonthView({
                       />
                     ))}
                     {events.length > 4 ? (
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[10px] text-slate-500">
                         +{events.length - 4}
                       </span>
                     ) : null}
@@ -399,7 +399,7 @@ function WeekView({
             </div>
 
             {events.length === 0 ? (
-              <p className="mt-2 rounded-lg border border-dashed border-slate-200 px-2 py-3 text-center text-xs text-slate-400 dark:border-slate-800 dark:text-slate-500">
+              <p className="mt-2 rounded-lg border border-dashed border-slate-200 px-2 py-3 text-center text-xs text-slate-500 dark:border-slate-800 dark:text-slate-500">
                 Nothing scheduled
               </p>
             ) : (
@@ -458,14 +458,14 @@ function EventChip({
         <span
           className={cn(
             'block truncate text-xs font-medium text-slate-700 dark:text-slate-200',
-            isCompleted && 'text-slate-400 line-through dark:text-slate-500',
+            isCompleted && 'text-slate-500 line-through dark:text-slate-500',
           )}
           title={event.title}
         >
           {detailed ? event.title : truncate(event.title, 14)}
         </span>
         {detailed ? (
-          <span className="mt-0.5 block truncate text-[11px] text-slate-400 dark:text-slate-500">
+          <span className="mt-0.5 block truncate text-[11px] text-slate-500 dark:text-slate-500">
             {event.kind === 'assignment' ? 'Due' : formatTime(event.startTime ?? '')} ·{' '}
             {event.subjectCode}
           </span>
@@ -528,7 +528,7 @@ function DayEventList({
                 {event.subjectName}
               </span>
             </span>
-            <Icon name="ChevronRight" className="mt-1 size-4 shrink-0 text-slate-400" />
+            <Icon name="ChevronRight" className="mt-1 size-4 shrink-0 text-slate-500" />
           </button>
         </li>
       ))}
@@ -561,7 +561,7 @@ function EventDetails({
           {event.subjectName}
         </span>
         {event.subjectCode ? (
-          <span className="text-xs text-slate-400 dark:text-slate-500">{event.subjectCode}</span>
+          <span className="text-xs text-slate-500 dark:text-slate-500">{event.subjectCode}</span>
         ) : null}
       </div>
 

@@ -51,7 +51,7 @@ export function SubjectOverview({ subjects }: SubjectOverviewProps) {
                     {subject.code}
                   </p>
                   <p className="truncate text-xs text-slate-500 dark:text-slate-400">{subject.name}</p>
-                  <p className="mt-0.5 truncate text-[11px] text-slate-400 dark:text-slate-500">
+                  <p className="mt-0.5 truncate text-[11px] text-slate-500 dark:text-slate-500">
                     {subject.credits} credits · {subject.instructor}
                   </p>
                 </div>

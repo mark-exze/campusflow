@@ -36,7 +36,7 @@ export function Sidebar() {
           <span className="text-xs text-slate-500 dark:text-slate-400">Appearance</span>
           <ThemeToggle />
         </div>
-        <p className="mt-3 px-1 text-[11px] leading-relaxed text-slate-400 dark:text-slate-500">
+        <p className="mt-3 px-1 text-[11px] leading-relaxed text-slate-500 dark:text-slate-500">
           Local-first preview · Data saved on this device. No cloud sync yet.
         </p>
       </div>

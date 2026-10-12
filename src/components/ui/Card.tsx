@@ -35,7 +35,7 @@ export function CardHeader({ title, description, icon, action, className }: Card
     <div className={cn('flex items-start justify-between gap-3', className)}>
       <div className="min-w-0 space-y-1">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
-          {icon ? <Icon name={icon} className="size-4 shrink-0 text-slate-400" /> : null}
+          {icon ? <Icon name={icon} className="size-4 shrink-0 text-slate-500" /> : null}
           {title}
         </h2>
         {description ? (

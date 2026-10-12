@@ -4,13 +4,24 @@ import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { STORAGE_KEYS } from '../../lib/constants'
 import { MOCK_SEMESTER, MOCK_SUBJECTS } from '../../lib/mockData'
 import { isSubjectArray } from '../../lib/storage'
+import { countOrphanRiskAssignments } from '../../lib/seedData'
 import {
   createSubject,
   deriveClassSessions,
   normalizeSubject,
   type SubjectDraft,
 } from '../../lib/subjects'
-import type { Subject, SubjectSchedule } from '../../types'
+import type { Assignment, Subject, SubjectSchedule } from '../../types'
+
+/**
+ * Outcome of a guarded "restore sample subjects" attempt.
+ *
+ * `blocked` means assignments would be orphaned, so nothing was changed.
+ */
+export type SubjectResetOutcome =
+  | { status: 'restored' }
+  | { status: 'blocked'; affectedCount: number }
+  | { status: 'failed' }
 
 export type { SubjectDraft } from '../../lib/subjects'
 
@@ -110,9 +121,41 @@ export function useSubjects() {
     [commit, readLive],
   )
 
-  const resetSubjects = useCallback(() => {
-    reset()
+  const resetSubjects = useCallback((): boolean => reset(), [reset])
+
+  /**
+   * Guarded "restore sample subjects".
+   *
+   * The reset REPLACES the subject list, so an assignment referencing a
+   * student-created subject would be left pointing at an id that no longer
+   * exists. Rather than orphaning it, the reset is refused and the caller is
+   * told how many assignments must be reassigned or removed first.
+   *
+   * The guard reads the CURRENT stored assignments rather than values captured
+   * during render, so a page mounted before a subject was deleted — or before
+   * an assignment was created in another component — cannot pass on a stale
+   * snapshot and orphan real work.
+   */
+  const restoreSampleSubjects = useCallback((): SubjectResetOutcome => {
+    const atRisk = countOrphanRiskAssignments(readAssignmentsFromStorage())
+    if (atRisk > 0) {
+      return { status: 'blocked', affectedCount: atRisk }
+    }
+
+    return reset() ? { status: 'restored' } : { status: 'failed' }
   }, [reset])
+
+  /**
+   * Live count of assignments that a subject reset would orphan.
+   *
+   * Reading storage here means a dialog opened after a subject was deleted, or
+   * after an assignment was created elsewhere in this tab, shows the true
+   * blocked state instead of the snapshot captured at render.
+   */
+  const getSubjectResetRisk = useCallback(
+    (): number => countOrphanRiskAssignments(readAssignmentsFromStorage()),
+    [],
+  )
 
   const replaceSchedule = useCallback(
     (id: string, schedule: SubjectSchedule[]): boolean =>
@@ -136,5 +179,23 @@ export function useSubjects() {
     removeSubject,
     replaceSchedule,
     resetSubjects,
+    restoreSampleSubjects,
+    getSubjectResetRisk,
+  }
+}
+
+/** Read the current stored assignments for the reset guard's risk check. */
+function readAssignmentsFromStorage(): Assignment[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEYS.assignments)
+    if (raw === null) return []
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter(
+      (item): item is Assignment => typeof item === 'object' && item !== null,
+    )
+  } catch {
+    return []
   }
 }

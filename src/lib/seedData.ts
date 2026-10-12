@@ -212,3 +212,25 @@ export function getUserSubjects(subjects: readonly Subject[]): Subject[] {
 export function getStudentSubjects(subjects: readonly Subject[]): Subject[] {
   return subjects.filter((subject) => getSubjectOrigin(subject) !== 'sample')
 }
+
+/**
+ * Assignments that would be orphaned by restoring the sample subjects.
+ *
+ * Restoring replaces the subject list with exactly the seeded ids, so an
+ * assignment is at risk whenever its `subjectId` is not one of those ids. Pass
+ * a different set to model a different reset.
+ */
+export function findOrphanRiskAssignments(
+  assignments: readonly Assignment[],
+  restoredIds: ReadonlySet<string> = SEED_SUBJECT_IDS,
+): Assignment[] {
+  return assignments.filter((assignment) => !restoredIds.has(assignment.subjectId))
+}
+
+/** Convenience wrapper for the common "how many are at risk" question. */
+export function countOrphanRiskAssignments(
+  assignments: readonly Assignment[],
+  restoredIds: ReadonlySet<string> = SEED_SUBJECT_IDS,
+): number {
+  return findOrphanRiskAssignments(assignments, restoredIds).length
+}

@@ -60,7 +60,7 @@ export function AssignmentCard({
           <h3
             className={cn(
               'text-sm font-semibold text-slate-900 dark:text-slate-100',
-              isCompleted && 'text-slate-400 line-through dark:text-slate-500',
+              isCompleted && 'text-slate-500 line-through dark:text-slate-500',
             )}
           >
             {assignment.title}

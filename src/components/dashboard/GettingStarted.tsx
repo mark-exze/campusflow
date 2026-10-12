@@ -98,7 +98,7 @@ export function GettingStarted({ input, onDismiss }: GettingStartedProps) {
             {showDetail ? 'Less detail' : 'What counts as done?'}
           </button>
 
-          <span className="text-[11px] text-slate-400 dark:text-slate-500">
+          <span className="text-[11px] text-slate-500 dark:text-slate-500">
             You can hide this any time.
           </span>
         </div>
@@ -137,7 +137,7 @@ function StepRow({
           'flex size-6 shrink-0 items-center justify-center rounded-full',
           step.isComplete
             ? 'bg-emerald-500 text-white'
-            : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500',
+            : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-500',
         )}
       >
         <Icon name={step.isComplete ? 'Check' : 'Circle'} className="size-3.5" />

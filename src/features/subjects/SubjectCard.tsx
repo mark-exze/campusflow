@@ -53,7 +53,7 @@ export function SubjectCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="text-xs font-medium tracking-wide text-slate-400 uppercase dark:text-slate-500">
+              <p className="text-xs font-medium tracking-wide text-slate-500 uppercase dark:text-slate-500">
                 {subject.code}
               </p>
               <h3
